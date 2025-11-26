@@ -13,6 +13,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
+      <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              const theme = localStorage.getItem('theme');
+              if (theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+              }
+            })();
+          `
+        }} />
+      </head>
       <body className="antialiased">
         {children}
       </body>

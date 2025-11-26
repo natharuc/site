@@ -8,20 +8,27 @@ import Footer from '../components/Footer';
 import NavBar from '../components/NavBar';
 
 export default function Experiencia() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      return savedTheme !== 'light';
+    }
+    return true;
+  });
 
   useEffect(() => {
     document.title = 'Experiência - Nathan Arruda';
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      setIsDark(savedTheme === 'dark');
-    }
   }, []);
 
   const handleThemeToggle = () => {
     const newTheme = !isDark;
     setIsDark(newTheme);
     localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+    if (newTheme) {
+      document.documentElement.classList.remove('light-mode');
+    } else {
+      document.documentElement.classList.add('light-mode');
+    }
   };
 
   const theme = {
