@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Terminal Portfolio",
-  description: "Um portfolio interativo em formato de terminal - Explore comandos e descubra mais sobre mim!",
+  title: "Nathan Arruda - Tech Lead & Software Architect",
+  description: "Tech Lead transformando ideias em código de alta performance há mais de 10 anos. Especialista em .NET Core, Azure Cloud e arquitetura de microsserviços.",
 };
 
 export default function RootLayout({
