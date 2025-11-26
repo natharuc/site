@@ -8,13 +8,14 @@ import Footer from '../components/Footer';
 import NavBar from '../components/NavBar';
 
 export default function Experiencia() {
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme');
-      return savedTheme !== 'light';
-    }
-    return true;
-  });
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+    const savedTheme = localStorage.getItem('theme');
+    setIsDark(savedTheme !== 'light');
+  }, []);
 
   useEffect(() => {
     document.title = 'Experiência - Nathan Arruda';
@@ -55,6 +56,10 @@ export default function Experiencia() {
   };
 
   const currentTheme = isDark ? theme.dark : theme.light;
+
+  if (!mounted) {
+    return null;
+  }
 
   const experiences = [
     {

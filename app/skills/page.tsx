@@ -7,13 +7,14 @@ import Footer from '../components/Footer';
 import NavBar from '../components/NavBar';
 
 export default function Skills() {
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme');
-      return savedTheme !== 'light';
-    }
-    return true;
-  });
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+    const savedTheme = localStorage.getItem('theme');
+    setIsDark(savedTheme !== 'light');
+  }, []);
 
   useEffect(() => {
     document.title = 'Skills - Nathan Arruda';
@@ -54,6 +55,10 @@ export default function Skills() {
   };
 
   const currentTheme = isDark ? theme.dark : theme.light;
+
+  if (!mounted) {
+    return null;
+  }
 
   const skills = [
     {

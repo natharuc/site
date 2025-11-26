@@ -10,19 +10,19 @@ import NavBar from './components/NavBar';
 
 export default function Home() {
   const [isDevMode, setIsDevMode] = useState(false);
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme');
-      return savedTheme !== 'light';
-    }
-    return true;
-  });
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+    const savedTheme = localStorage.getItem('theme');
+    setIsDark(savedTheme !== 'light');
+  }, []);
 
   useEffect(() => {
     document.title = isDevMode ? 'Nathan Arruda - Terminal Dev Mode' : 'Nathan Arruda - Tech Lead & Software Architect';
   }, [isDevMode]);
 
-  // Salvar preferência de tema
   const handleThemeToggle = () => {
     const newTheme = !isDark;
     setIsDark(newTheme);
@@ -33,6 +33,10 @@ export default function Home() {
       document.documentElement.classList.add('light-mode');
     }
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   const theme = {
     dark: {
