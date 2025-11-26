@@ -135,40 +135,72 @@ export default function Experiencia() {
         </div>
 
         <div className="relative">
-          {/* Timeline line */}
-          <div className={`absolute left-1/2 transform -translate-x-1/2 h-full w-1 ${isDark ? 'bg-gradient-to-b from-green-500 via-emerald-500 to-green-500' : 'bg-gradient-to-b from-green-400 via-emerald-400 to-green-400'} transition-colors duration-1000`} />
+          {/* Timeline line - Hidden on mobile */}
+          <div className={`hidden md:block absolute left-1/2 transform -translate-x-1/2 h-full w-1 ${isDark ? 'bg-gradient-to-b from-green-500 via-emerald-500 to-green-500' : 'bg-gradient-to-b from-green-400 via-emerald-400 to-green-400'} transition-colors duration-1000`} />
+          
+          {/* Mobile timeline line */}
+          <div className={`md:hidden absolute left-6 top-0 bottom-0 w-0.5 ${isDark ? 'bg-gradient-to-b from-green-500 via-emerald-500 to-green-500' : 'bg-gradient-to-b from-green-400 via-emerald-400 to-green-400'} transition-colors duration-1000`} />
 
-          <div className="space-y-16">
+          <div className="space-y-8 md:space-y-16">
             {experiences.map((exp, idx) => (
               <div
                 key={idx}
-                className={`relative flex items-center ${idx % 2 === 0 ? 'justify-start' : 'justify-end'} animate-fade-in`}
+                className={`relative animate-fade-in`}
                 style={{ animationDelay: `${idx * 0.2}s` }}
               >
-                <div className={`w-5/12 ${idx % 2 === 0 ? 'text-right pr-8' : 'text-left pl-8'}`}>
-                  <div className={`${currentTheme.card} backdrop-blur-lg rounded-2xl p-6 border ${currentTheme.cardBorder} transition-all duration-300 hover:transform hover:scale-105`}>
-                    <div className={`flex items-center ${idx % 2 === 0 ? 'justify-end' : 'justify-start'} mb-4 space-x-3`}>
-                      <div className={`w-12 h-12 bg-gradient-to-br ${exp.color} rounded-lg flex items-center justify-center`}>
-                        <exp.icon className="text-white drop-shadow-lg" size={24} />
+                {/* Desktop Layout */}
+                <div className={`hidden md:flex items-center ${idx % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+                  <div className={`w-5/12 ${idx % 2 === 0 ? 'text-right pr-8' : 'text-left pl-8'}`}>
+                    <div className={`${currentTheme.card} backdrop-blur-lg rounded-2xl p-6 border ${currentTheme.cardBorder} transition-all duration-300 hover:transform hover:scale-105`}>
+                      <div className={`flex items-center ${idx % 2 === 0 ? 'justify-end' : 'justify-start'} mb-4 space-x-3`}>
+                        <div className={`w-12 h-12 bg-gradient-to-br ${exp.color} rounded-lg flex items-center justify-center`}>
+                          <exp.icon className="text-white drop-shadow-lg" size={24} />
+                        </div>
                       </div>
+                      
+                      <div className={`text-xs ${currentTheme.textMuted} mb-2 transition-colors duration-1000`}>{exp.period}</div>
+                      <h3 className={`text-xl font-bold ${currentTheme.text} mb-1 transition-colors duration-1000`}>{exp.role}</h3>
+                      <p className={`text-sm ${currentTheme.textSecondary} mb-4 transition-colors duration-1000`}>{exp.company}</p>
+                      
+                      <ul className={`space-y-2 ${idx % 2 === 0 ? 'text-right' : 'text-left'}`}>
+                        {exp.achievements.map((achievement, achIdx) => (
+                          <li key={achIdx} className={`text-sm ${currentTheme.textMuted} transition-colors duration-1000`}>
+                            {achievement}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Timeline dot */}
+                  <div className={`absolute left-1/2 transform -translate-x-1/2 w-6 h-6 bg-gradient-to-br ${exp.color} rounded-full border-4 ${isDark ? 'border-black' : 'border-gray-50'} transition-colors duration-1000 z-10`} />
+                </div>
+
+                {/* Mobile Layout */}
+                <div className="md:hidden pl-16 pr-4">
+                  <div className={`${currentTheme.card} backdrop-blur-lg rounded-2xl p-4 border ${currentTheme.cardBorder} transition-all duration-300`}>
+                    <div className="flex items-center space-x-3 mb-3">
+                      <div className={`w-10 h-10 bg-gradient-to-br ${exp.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                        <exp.icon className="text-white drop-shadow-lg" size={20} />
+                      </div>
+                      <div className={`text-xs ${currentTheme.textMuted} transition-colors duration-1000`}>{exp.period}</div>
                     </div>
                     
-                    <div className={`text-xs ${currentTheme.textMuted} mb-2 transition-colors duration-1000`}>{exp.period}</div>
-                    <h3 className={`text-xl font-bold ${currentTheme.text} mb-1 transition-colors duration-1000`}>{exp.role}</h3>
-                    <p className={`text-sm ${currentTheme.textSecondary} mb-4 transition-colors duration-1000`}>{exp.company}</p>
+                    <h3 className={`text-lg font-bold ${currentTheme.text} mb-1 transition-colors duration-1000`}>{exp.role}</h3>
+                    <p className={`text-sm ${currentTheme.textSecondary} mb-3 transition-colors duration-1000`}>{exp.company}</p>
                     
-                    <ul className={`space-y-2 ${idx % 2 === 0 ? 'text-right' : 'text-left'}`}>
+                    <ul className="space-y-2">
                       {exp.achievements.map((achievement, achIdx) => (
-                        <li key={achIdx} className={`text-sm ${currentTheme.textMuted} transition-colors duration-1000`}>
-                          {achievement}
+                        <li key={achIdx} className={`text-xs ${currentTheme.textMuted} transition-colors duration-1000 leading-relaxed`}>
+                          • {achievement}
                         </li>
                       ))}
                     </ul>
                   </div>
+                  
+                  {/* Mobile Timeline dot */}
+                  <div className={`absolute left-6 top-5 transform -translate-x-1/2 w-3 h-3 bg-gradient-to-br ${exp.color} rounded-full border-2 ${isDark ? 'border-black' : 'border-gray-50'} transition-colors duration-1000 z-10`} />
                 </div>
-
-                {/* Timeline dot */}
-                <div className={`absolute left-1/2 transform -translate-x-1/2 w-6 h-6 bg-gradient-to-br ${exp.color} rounded-full border-4 ${isDark ? 'border-black' : 'border-gray-50'} transition-colors duration-1000 z-10`} />
               </div>
             ))}
           </div>
