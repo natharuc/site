@@ -12,6 +12,21 @@ export default function Home() {
   const [isDevMode, setIsDevMode] = useState(false);
   const [isDark, setIsDark] = useState(true);
 
+  // Carregar preferência de tema do localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      setIsDark(savedTheme === 'dark');
+    }
+  }, []);
+
+  // Salvar preferência de tema
+  const handleThemeToggle = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+  };
+
   useEffect(() => {
     document.title = isDevMode ? 'Nathan Arruda - Terminal Dev Mode' : 'Nathan Arruda - Tech Lead & Software Architect';
   }, [isDevMode]);
@@ -65,7 +80,7 @@ export default function Home() {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bg} transition-all duration-1000`}>
       {/* Navigation */}
-      <NavBar isDark={isDark} onThemeToggle={() => setIsDark(!isDark)} />
+      <NavBar isDark={isDark} onThemeToggle={handleThemeToggle} />
 
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

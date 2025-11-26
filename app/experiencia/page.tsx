@@ -12,7 +12,17 @@ export default function Experiencia() {
 
   useEffect(() => {
     document.title = 'Experiência - Nathan Arruda';
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      setIsDark(savedTheme === 'dark');
+    }
   }, []);
+
+  const handleThemeToggle = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+  };
 
   const theme = {
     dark: {
@@ -123,7 +133,7 @@ export default function Experiencia() {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bg} transition-all duration-1000`}>
       {/* Navigation */}
-      <NavBar isDark={isDark} onThemeToggle={() => setIsDark(!isDark)} />
+      <NavBar isDark={isDark} onThemeToggle={handleThemeToggle} />
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
