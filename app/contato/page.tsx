@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaGithub, FaLinkedin, FaTwitter, FaInstagram, FaHeart } from 'react-icons/fa';
-import { BsSunFill, BsMoonStarsFill } from 'react-icons/bs';
 import Footer from '../components/Footer';
+import NavBar from '../components/NavBar';
 
 export default function Contato() {
   const [isDark, setIsDark] = useState(true);
@@ -72,46 +72,7 @@ export default function Contato() {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bg} transition-all duration-1000`}>
       {/* Navigation */}
-      <nav className={`sticky top-0 left-0 right-0 z-50 backdrop-blur-lg ${currentTheme.navBg} border-b ${currentTheme.navBorder} transition-all duration-1000`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center space-x-2 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-white font-bold text-xl">NA</span>
-              </div>
-              <span className={`${currentTheme.text} font-bold text-xl transition-colors duration-1000`}>Nathan Arruda</span>
-            </Link>
-            
-            <div className="flex items-center space-x-8">
-              <Link href="/" className={`text-sm font-medium transition-all duration-300 ${currentTheme.textMuted} hover:text-green-400`}>
-                Home
-              </Link>
-              <Link href="/sobre" className={`text-sm font-medium transition-all duration-300 ${currentTheme.textMuted} hover:text-green-400`}>
-                Sobre
-              </Link>
-              <Link href="/skills" className={`text-sm font-medium transition-all duration-300 ${currentTheme.textMuted} hover:text-green-400`}>
-                Skills
-              </Link>
-              <Link href="/experiencia" className={`text-sm font-medium transition-all duration-300 ${currentTheme.textMuted} hover:text-green-400`}>
-                Experiência
-              </Link>
-              <Link href="/contato" className="text-sm font-medium text-green-400 scale-110">
-                Contato
-              </Link>
-              
-              <button
-                onClick={() => setIsDark(!isDark)}
-                className="relative w-16 h-8 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 p-1 transition-all duration-500 hover:scale-110 overflow-hidden"
-              >
-                <div className={`absolute inset-0 bg-gradient-to-r transition-transform duration-700 ease-in-out ${isDark ? 'from-slate-800 to-slate-900 translate-x-0' : 'from-yellow-400 to-orange-400 translate-x-full'}`} />
-                <div className={`relative w-6 h-6 bg-white rounded-full shadow-lg transform transition-all duration-700 ease-in-out flex items-center justify-center ${isDark ? 'translate-x-0' : 'translate-x-8'}`}>
-                  {isDark ? <BsMoonStarsFill className="w-3 h-3 text-slate-800" /> : <BsSunFill className="w-4 h-4 text-yellow-500" />}
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <NavBar isDark={isDark} onThemeToggle={() => setIsDark(!isDark)} />
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
