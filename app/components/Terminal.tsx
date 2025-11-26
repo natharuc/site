@@ -10,8 +10,9 @@ export default function Terminal() {
   const [input, setInput] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [currentTheme, setCurrentTheme] = useState('matrix');
+  const [currentTheme, setCurrentTheme] = useState('dracula');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -25,10 +26,10 @@ export default function Terminal() {
       { type: 'info', content: '║           BEM-VINDO AO TERMINAL PORTFOLIO                  ║' },
       { type: 'info', content: '╚════════════════════════════════════════════════════════════╝' },
       { type: 'output', content: '' },
-      { type: 'success', content: '👋 Olá! Eu sou um desenvolvedor apaixonado por tecnologia.' },
+      { type: 'success', content: 'Olá! Eu sou um desenvolvedor apaixonado por tecnologia.' },
       { type: 'output', content: '' },
-      { type: 'info', content: '💡 Digite "help" ou "man" para ver todos os comandos disponíveis.' },
-      { type: 'info', content: '🎨 Digite "theme" para ver temas disponíveis.' },
+      { type: 'info', content: 'Digite "help" ou "man" para ver todos os comandos disponíveis.' },
+      { type: 'info', content: 'Digite "theme" para ver temas disponíveis.' },
       { type: 'output', content: '' },
     ];
     setHistory(welcomeMessages);
@@ -39,16 +40,16 @@ export default function Terminal() {
     if (terminalRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [history]);
+  }, [history, suggestions, input]);
 
   useEffect(() => {
     // Focus no input ao carregar
     inputRef.current?.focus();
   }, []);
 
-  const handleCommand = (cmd: string) => {
+  const handleCommand = async (cmd: string) => {
     const trimmedCmd = cmd.trim();
-    if (!trimmedCmd) return;
+    if (!trimmedCmd || isProcessing) return;
 
     // Adiciona comando ao histórico
     const newHistory = [...commandHistory, trimmedCmd];
@@ -56,7 +57,7 @@ export default function Terminal() {
     setHistoryIndex(-1);
 
     // Adiciona comando à tela
-    setHistory(prev => [...prev, { type: 'input', content: `$ ${trimmedCmd}` }]);
+    setHistory(prev => [...prev, { type: 'input', content: `> ${trimmedCmd}` }]);
 
     // Parse comando e argumentos
     const parts = trimmedCmd.split(' ');
@@ -73,10 +74,10 @@ export default function Terminal() {
       const themeName = args[0].toLowerCase();
       if (themeNames.includes(themeName)) {
         setCurrentTheme(themeName);
-        setHistory(prev => [...prev, { type: 'success', content: `🎨 Tema "${themeName}" aplicado!` }]);
+        setHistory(prev => [...prev, { type: 'success', content: `Tema "${themeName}" aplicado!` }]);
         return;
       } else {
-        setHistory(prev => [...prev, { type: 'error', content: `❌ Tema "${themeName}" não encontrado!` }]);
+        setHistory(prev => [...prev, { type: 'error', content: `Tema "${themeName}" não encontrado!` }]);
         return;
       }
     }
@@ -90,18 +91,129 @@ export default function Terminal() {
         setCurrentTheme('matrix');
       }
 
-      const output = command.execute(args);
-      setHistory(prev => [...prev, ...output]);
+      // Comandos com loading animado
+      if (commandName === 'hack' || commandName === 'hacker') {
+        setIsProcessing(true);
+        await executeHackCommand();
+        setIsProcessing(false);
+      } else {
+        const output = command.execute(args);
+        setHistory(prev => [...prev, ...output]);
+      }
     } else {
       setHistory(prev => [
         ...prev,
-        { type: 'error', content: `❌ Comando não encontrado: ${commandName}` },
-        { type: 'info', content: '💡 Digite "help" para ver os comandos disponíveis.' },
+        { type: 'error', content: `Comando não encontrado: ${commandName}` },
+        { type: 'info', content: 'Digite "help" para ver os comandos disponíveis.' },
       ]);
     }
   };
 
+  const executeHackCommand = async () => {
+    const addLine = (content: string, type: TerminalLine['type'] = 'output', delay = 100) => {
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          setHistory(prev => [...prev, { type, content }]);
+          resolve();
+        }, delay);
+      });
+    };
+
+    // Início
+    await addLine('', 'output', 200);
+    await addLine('═══════════════════════════════════════════════════════════', 'info', 100);
+    await addLine('  INICIANDO PROTOCOLO DE ACESSO NÃO AUTORIZADO', 'error', 100);
+    await addLine('═══════════════════════════════════════════════════════════', 'info', 100);
+    await addLine('', 'output', 300);
+    
+    // Fase 1: Scanning
+    await addLine('[SCANNING] Procurando vulnerabilidades...', 'info', 200);
+    await addLine('  ▓░░░░░░░░░ 10%', 'output', 300);
+    await addLine('  ▓▓░░░░░░░░ 25%', 'output', 300);
+    await addLine('  ▓▓▓▓░░░░░░ 45%', 'output', 300);
+    await addLine('  ▓▓▓▓▓▓░░░░ 65%', 'output', 300);
+    await addLine('  ▓▓▓▓▓▓▓▓░░ 85%', 'output', 300);
+    await addLine('  ▓▓▓▓▓▓▓▓▓▓ 100%', 'success', 300);
+    await addLine('', 'output', 200);
+    await addLine('[SUCCESS] 3 vulnerabilidades encontradas!', 'success', 100);
+    await addLine('  └─ Port 22: SSH (OpenSSH 7.4)', 'output', 150);
+    await addLine('  └─ Port 80: HTTP (Apache 2.4.29)', 'output', 150);
+    await addLine('  └─ Port 443: HTTPS (SSL/TLS)', 'output', 150);
+    await addLine('', 'output', 400);
+    
+    // Fase 2: Exploiting
+    await addLine('[EXPLOIT] Tentando explorar Port 22...', 'info', 200);
+    await addLine('  ▓▓▓░░░░░░░ 30%', 'output', 500);
+    await addLine('[ERROR] Conexão recusada!', 'error', 100);
+    await addLine('[RETRY] Tentando exploit alternativo...', 'info', 300);
+    await addLine('  ▓▓▓▓▓▓░░░░ 60%', 'output', 600);
+    await addLine('[ERROR] Timeout na conexão!', 'error', 100);
+    await addLine('', 'output', 300);
+    
+    await addLine('[EXPLOIT] Mudando estratégia... Port 443', 'info', 200);
+    await addLine('  ▓▓░░░░░░░░ 20%', 'output', 400);
+    await addLine('  ▓▓▓▓▓░░░░░ 50%', 'output', 400);
+    await addLine('[WARNING] Firewall detectado!', 'error', 100);
+    await addLine('[BYPASS] Aplicando técnica de evasão...', 'info', 300);
+    await addLine('  ▓▓▓▓▓▓▓▓░░ 80%', 'output', 500);
+    await addLine('  ▓▓▓▓▓▓▓▓▓▓ 100%', 'success', 400);
+    await addLine('[SUCCESS] Firewall bypassado!', 'success', 100);
+    await addLine('', 'output', 400);
+    
+    // Fase 3: Brute Force
+    await addLine('[BRUTE FORCE] Iniciando ataque de força bruta...', 'info', 200);
+    await addLine('  Tentando: admin:admin123 ✗', 'output', 250);
+    await addLine('  Tentando: root:password ✗', 'output', 250);
+    await addLine('  Tentando: user:12345678 ✗', 'output', 250);
+    await addLine('  Tentando: admin:qwerty ✗', 'output', 250);
+    await addLine('  Tentando: root:toor ✗', 'output', 250);
+    await addLine('[ERROR] Rate limit detectado!', 'error', 100);
+    await addLine('[WAIT] Aguardando 3 segundos...', 'info', 800);
+    await addLine('  Tentando: sysadmin:P@ssw0rd ✗', 'output', 300);
+    await addLine('  Tentando: root:r00t2023 ✓', 'success', 400);
+    await addLine('[SUCCESS] Credenciais encontradas!', 'success', 100);
+    await addLine('', 'output', 400);
+    
+    // Fase 4: Access
+    await addLine('[ACCESS] Estabelecendo conexão segura...', 'info', 200);
+    await addLine('  ▓▓▓▓▓▓▓▓▓▓ 100%', 'success', 600);
+    await addLine('[SUCCESS] Conexão estabelecida!', 'success', 100);
+    await addLine('', 'output', 400);
+    
+    // Fase 5: Privilege Escalation
+    await addLine('[ESCALATION] Escalando privilégios...', 'info', 200);
+    await addLine('  └─ Verificando sudo permissions...', 'output', 300);
+    await addLine('  └─ Procurando SUID binaries...', 'output', 300);
+    await addLine('  └─ Analisando cron jobs...', 'output', 300);
+    await addLine('[SUCCESS] Root access obtido!', 'success', 100);
+    await addLine('', 'output', 500);
+    
+    // Fase 6: Final
+    await addLine('', 'output', 300);
+    await addLine('═══════════════════════════════════════════════════════════', 'success', 100);
+    await addLine('', 'output', 150);
+    await addLine('  ███████ ██    ██ ███████ ████████ ███████ ███    ███', 'success', 100);
+    await addLine('  ██       ██  ██  ██         ██    ██      ████  ████', 'success', 100);
+    await addLine('  ███████   ████   ███████    ██    █████   ██ ████ ██', 'success', 100);
+    await addLine('       ██    ██         ██    ██    ██      ██  ██  ██', 'success', 100);
+    await addLine('  ███████    ██    ███████    ██    ███████ ██      ██', 'success', 100);
+    await addLine('', 'output', 200);
+    await addLine('  ██    ██ ███    ██ ██       ██████   ██████ ██   ██', 'success', 100);
+    await addLine('  ██    ██ ████   ██ ██      ██    ██ ██      ██  ██ ', 'success', 100);
+    await addLine('  ██    ██ ██ ██  ██ ██      ██    ██ ██      █████  ', 'success', 100);
+    await addLine('  ██    ██ ██  ██ ██ ██      ██    ██ ██      ██  ██ ', 'success', 100);
+    await addLine('   ██████  ██   ████ ███████  ██████   ██████ ██   ██', 'success', 100);
+    await addLine('', 'output', 150);
+    await addLine('═══════════════════════════════════════════════════════════', 'success', 100);
+    await addLine('', 'output', 400);
+    await addLine('[INFO] Apenas brincando! Você não hackeou nada de verdade.', 'info', 100);
+    await addLine('[TIP] Mas que tal aprender segurança cibernética de verdade?', 'info', 100);
+    await addLine('', 'output', 200);
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (isProcessing) return;
+    
     if (e.key === 'Enter') {
       handleCommand(input);
       setInput('');
@@ -129,8 +241,9 @@ export default function Terminal() {
         setInput(suggestions[0]);
         setSuggestions([]);
       }
-    } else if (e.key === 'Escape') {
+    } else if (e.key === 'Escape' || e.key === 'Esc') {
       e.preventDefault();
+      e.stopPropagation();
       setInput('');
       setSuggestions([]);
     }
@@ -205,7 +318,7 @@ export default function Terminal() {
         {/* Terminal Content */}
         <div
           ref={terminalRef}
-          className="p-4 h-[600px] overflow-y-auto custom-scrollbar"
+          className="p-4 h-[70vh] min-h-[500px] max-h-[700px] overflow-y-auto custom-scrollbar"
           style={{ backgroundColor: theme.bg }}
         >
           {/* History */}
@@ -222,7 +335,7 @@ export default function Terminal() {
           {/* Input Line */}
           <div className="flex items-center gap-2">
             <span style={{ color: theme.prompt }} className="font-bold">
-              $
+              &gt;
             </span>
             <input
               ref={inputRef}
@@ -234,13 +347,14 @@ export default function Terminal() {
               style={{ color: theme.input }}
               spellCheck={false}
               autoComplete="off"
+              disabled={isProcessing}
             />
           </div>
 
           {/* Suggestions */}
           {suggestions.length > 0 && input && (
             <div className="mt-2 text-sm opacity-60" style={{ color: theme.info }}>
-              💡 Sugestões: {suggestions.join(', ')}
+              Sugestões: {suggestions.join(', ')}
             </div>
           )}
         </div>
