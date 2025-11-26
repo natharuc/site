@@ -16,7 +16,9 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     const savedTheme = localStorage.getItem('theme');
+    const savedMode = localStorage.getItem('viewMode');
     setIsDark(savedTheme !== 'light');
+    setIsDevMode(savedMode === 'terminal');
   }, []);
 
   useEffect(() => {
@@ -32,6 +34,12 @@ export default function Home() {
     } else {
       document.documentElement.classList.add('light-mode');
     }
+  };
+
+  const handleModeToggle = () => {
+    const newMode = !isDevMode;
+    setIsDevMode(newMode);
+    localStorage.setItem('viewMode', newMode ? 'terminal' : 'visual');
   };
 
   if (!mounted) {
@@ -70,7 +78,7 @@ export default function Home() {
         
         {/* Mode Toggle Button */}
         <button
-          onClick={() => setIsDevMode(false)}
+          onClick={handleModeToggle}
           className="fixed bottom-8 right-8 z-[100] p-4 bg-white/10 text-white border-white/20 rounded-full backdrop-blur-lg border transition-all duration-500 hover:scale-110 group"
           aria-label="Switch to Visual Mode"
         >
@@ -173,7 +181,7 @@ export default function Home() {
 
       {/* Mode Toggle Button */}
       <button
-        onClick={() => setIsDevMode(true)}
+        onClick={handleModeToggle}
         className={`fixed bottom-8 left-8 z-[100] p-4 rounded-full backdrop-blur-lg border transition-all duration-500 hover:scale-110 group ${
           isDark 
             ? 'bg-white/10 text-white border-white/20' 
