@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { BiTargetLock, BiRefresh } from 'react-icons/bi';
 import { FaUsers, FaTrophy } from 'react-icons/fa';
@@ -9,6 +9,10 @@ import Footer from '../components/Footer';
 
 export default function Experiencia() {
   const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    document.title = 'Experiência - Nathan Arruda';
+  }, []);
 
   const theme = {
     dark: {

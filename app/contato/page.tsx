@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaGithub, FaLinkedin, FaTwitter, FaInstagram, FaHeart } from 'react-icons/fa';
 import { BsSunFill, BsMoonStarsFill } from 'react-icons/bs';
@@ -8,6 +8,10 @@ import Footer from '../components/Footer';
 
 export default function Contato() {
   const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    document.title = 'Contato - Nathan Arruda';
+  }, []);
 
   const theme = {
     dark: {

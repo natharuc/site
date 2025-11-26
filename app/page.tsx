@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaGithub, FaLinkedin, FaTwitter, FaInstagram, FaHandPeace } from 'react-icons/fa';
 import { HiSparkles, HiCode } from 'react-icons/hi';
@@ -11,6 +11,10 @@ import Footer from './components/Footer';
 export default function Home() {
   const [isDevMode, setIsDevMode] = useState(false);
   const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    document.title = isDevMode ? 'Nathan Arruda - Terminal Dev Mode' : 'Nathan Arruda - Tech Lead & Software Architect';
+  }, [isDevMode]);
 
   const theme = {
     dark: {
