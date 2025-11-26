@@ -152,7 +152,7 @@ export default function Home() {
       {/* Mode Toggle Button */}
       <button
         onClick={() => setIsDevMode(true)}
-        className={`fixed bottom-8 right-8 z-[100] p-4 rounded-full backdrop-blur-lg border transition-all duration-500 hover:scale-110 group ${
+        className={`fixed bottom-8 left-8 z-[100] p-4 rounded-full backdrop-blur-lg border transition-all duration-500 hover:scale-110 group ${
           isDark 
             ? 'bg-white/10 text-white border-white/20' 
             : 'bg-gray-900/10 text-gray-900 border-gray-900/20'
@@ -161,7 +161,7 @@ export default function Home() {
       >
         <HiCode size={24} className="transition-transform group-hover:rotate-12" />
         
-        <span className={`absolute bottom-full right-0 mb-2 px-3 py-1 text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+        <span className={`absolute bottom-full left-0 mb-2 px-3 py-1 text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
           isDark 
             ? 'bg-black/90 text-white' 
             : 'bg-white/90 text-gray-900'
