@@ -10,6 +10,7 @@ export interface Bolao {
   id?: string;
   name: string;
   password: string;
+  adminPassword?: string;
   createdAt: string;
   createdBy: string;
   participants?: number;

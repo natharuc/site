@@ -26,6 +26,8 @@ export default function MegaDaVirada() {
     votes: false,
     bolao: false
   });
+  const [isEditing, setIsEditing] = useState(false);
+  const [existingVote, setExistingVote] = useState<Vote | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -48,6 +50,22 @@ export default function MegaDaVirada() {
         const data = await response.json();
         setVotes(data.votes || []);
         setDataLoaded(prev => ({ ...prev, votes: true }));
+        
+        // Verificar se o usuário já votou
+        const savedName = localStorage.getItem('megasena_user_name');
+        if (savedName) {
+          const userVote = data.votes.find((vote: Vote) => 
+            vote.name.toLowerCase() === savedName.toLowerCase() &&
+            (!currentBolao || vote.bolaoId === currentBolao.id)
+          );
+          
+          if (userVote) {
+            setName(savedName);
+            setSelectedNumbers(userVote.numbers);
+            setExistingVote(userVote);
+            setIsEditing(true);
+          }
+        }
       }
     } catch (error) {
       console.error('Erro ao buscar votos:', error);
@@ -58,6 +76,15 @@ export default function MegaDaVirada() {
   useEffect(() => {
     fetchVotes();
   }, [fetchVotes]);
+
+  // Atualizar título da página
+  useEffect(() => {
+    if (currentBolao) {
+      document.title = `${currentBolao.name} - Mega da Virada`;
+    } else {
+      document.title = 'Mega da Virada';
+    }
+  }, [currentBolao]);
 
   // Aguardar carregamento de bolão
   useEffect(() => {
@@ -95,8 +122,9 @@ export default function MegaDaVirada() {
 
     setLoading(true);
     try {
+      const method = isEditing ? 'PUT' : 'POST';
       const response = await fetch('/api/mega-sena', {
-        method: 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -109,14 +137,23 @@ export default function MegaDaVirada() {
 
       if (response.ok) {
         setSubmitted(true);
-        setName('');
-        setSelectedNumbers([]);
+        
+        // Salvar nome no localStorage
+        localStorage.setItem('megasena_user_name', name.trim());
+        
+        // Limpar campos apenas se não estiver editando
+        if (!isEditing) {
+          setName('');
+          setSelectedNumbers([]);
+        }
+        
         await fetchVotes();
-        // Refresh bolao para atualizar contador de participantes
-        if (currentBolao) {
+        // Refresh bolao para atualizar contador de participantes (apenas para novos votos)
+        if (currentBolao && !isEditing) {
           setBolaoRefreshTrigger(prev => prev + 1);
         }
-        toast.success('Números enviados com sucesso!');
+        
+        toast.success(isEditing ? 'Números atualizados com sucesso!' : 'Números enviados com sucesso!');
         
         setTimeout(() => {
           setSubmitted(false);
@@ -175,8 +212,16 @@ export default function MegaDaVirada() {
           {/* Formulário de votação */}
           <div className="bg-white rounded-2xl shadow-2xl p-8">
             <h2 className="text-3xl font-bold text-green-800 mb-6">
-              Escolha seus Números
+              {isEditing ? 'Editar Meus Números' : 'Escolha seus Números'}
             </h2>
+            
+            {isEditing && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  Você já votou! Pode alterar seus números a qualquer momento.
+                </p>
+              </div>
+            )}
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
@@ -191,9 +236,9 @@ export default function MegaDaVirada() {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
+                  className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Digite seu nome"
-                  disabled={loading}
+                  disabled={loading || isEditing}
                   autoComplete="off"
                 />
               </div>
@@ -204,13 +249,55 @@ export default function MegaDaVirada() {
                 disabled={loading}
               />
 
-              <button
-                type="submit"
-                disabled={loading || selectedNumbers.length !== 6 || !name.trim()}
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-              >
-                {loading ? 'Enviando...' : 'Confirmar Números'}
-              </button>
+              <div className="space-y-3">
+                <button
+                  type="submit"
+                  disabled={loading || selectedNumbers.length !== 6 || !name.trim()}
+                  className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                >
+                  {loading ? 'Enviando...' : isEditing ? 'Atualizar Números' : 'Confirmar Números'}
+                </button>
+                
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!existingVote) return;
+                      
+                      // Deletar voto do banco de dados
+                      try {
+                        const response = await fetch(`/api/mega-sena?id=${existingVote.id}`, {
+                          method: 'DELETE',
+                        });
+                        
+                        if (response.ok) {
+                          localStorage.removeItem('megasena_user_name');
+                          setName('');
+                          setSelectedNumbers([]);
+                          setIsEditing(false);
+                          setExistingVote(null);
+                          await fetchVotes();
+                          
+                          // Atualizar contador de participantes do bolão
+                          if (currentBolao) {
+                            setBolaoRefreshTrigger(prev => prev + 1);
+                          }
+                          
+                          toast.success('Voto removido! Você pode fazer um novo voto agora');
+                        } else {
+                          toast.error('Erro ao remover voto');
+                        }
+                      } catch (error) {
+                        console.error('Erro ao deletar voto:', error);
+                        toast.error('Erro ao remover voto');
+                      }
+                    }}
+                    className="w-full bg-gray-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-600 transition-all"
+                  >
+                    Fazer Novo Voto (Limpar)
+                  </button>
+                )}
+              </div>
 
               {submitted && (
                 <div className="bg-green-100 border-2 border-green-500 text-green-800 px-4 py-3 rounded-lg text-center font-medium">
@@ -229,7 +316,11 @@ export default function MegaDaVirada() {
       </div>
 
         {/* Painel de Administração */}
-        <AdminPanel votes={votes} onVoteDeleted={fetchVotes} />
+        <AdminPanel 
+          votes={votes} 
+          onVoteDeleted={fetchVotes}
+          adminPassword={currentBolao?.adminPassword}
+        />
       </div>
     </>
   );

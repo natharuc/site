@@ -154,6 +154,112 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PUT - Atualizar números de um voto existente
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { name, numbers, bolaoId } = body;
+
+    // Validações
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Nome é obrigatório' },
+        { status: 400 }
+      );
+    }
+
+    if (!Array.isArray(numbers) || numbers.length !== 6) {
+      return NextResponse.json(
+        { success: false, error: 'Você deve selecionar exatamente 6 números' },
+        { status: 400 }
+      );
+    }
+
+    // Validar se todos os números estão entre 1 e 60
+    const validNumbers = numbers.every(
+      num => typeof num === 'number' && num >= 1 && num <= 60
+    );
+
+    if (!validNumbers) {
+      return NextResponse.json(
+        { success: false, error: 'Números devem estar entre 1 e 60' },
+        { status: 400 }
+      );
+    }
+
+    // Verificar se não há números duplicados
+    const uniqueNumbers = new Set(numbers);
+    if (uniqueNumbers.size !== 6) {
+      return NextResponse.json(
+        { success: false, error: 'Não pode haver números duplicados' },
+        { status: 400 }
+      );
+    }
+
+    const client = await connectToDatabase();
+    const db = client.db(dbName);
+    const collection = db.collection(collectionName);
+
+    // Buscar voto existente (case insensitive)
+    const filter: any = {
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') }
+    };
+
+    if (bolaoId) {
+      filter.bolaoId = bolaoId;
+    }
+
+    const existingVote = await collection.findOne(filter);
+
+    if (!existingVote) {
+      return NextResponse.json(
+        { success: false, error: 'Voto não encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // Atualizar números
+    const result = await collection.updateOne(
+      { _id: existingVote._id },
+      { 
+        $set: { 
+          numbers: numbers.sort((a: number, b: number) => a - b),
+          updatedAt: new Date().toISOString()
+        } 
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Erro ao atualizar voto' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      vote: {
+        id: existingVote._id.toString(),
+        name: existingVote.name,
+        numbers: numbers.sort((a: number, b: number) => a - b),
+        createdAt: existingVote.createdAt,
+        updatedAt: new Date().toISOString(),
+        bolaoId: existingVote.bolaoId
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar voto:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Erro ao atualizar voto',
+        message: error instanceof Error ? error.message : 'Erro desconhecido'
+      },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE - Deletar um voto (opcional, para administração)
 export async function DELETE(request: NextRequest) {
   try {

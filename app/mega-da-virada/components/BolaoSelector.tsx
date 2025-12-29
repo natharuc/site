@@ -16,6 +16,7 @@ export default function BolaoSelector({ onBolaoSelected, urlParams, refreshTrigg
   const [mode, setMode] = useState<'none' | 'create' | 'join'>('none');
   const [bolaoName, setBolaoName] = useState('');
   const [bolaoPassword, setBolaoPassword] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
   const [creatorName, setCreatorName] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentBolao, setCurrentBolao] = useState<Bolao | null>(null);
@@ -86,13 +87,18 @@ export default function BolaoSelector({ onBolaoSelected, urlParams, refreshTrigg
   const handleCreateBolao = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!bolaoName.trim() || !bolaoPassword.trim() || !creatorName.trim()) {
+    if (!bolaoName.trim() || !bolaoPassword.trim() || !adminPassword.trim() || !creatorName.trim()) {
       toast.error('Preencha todos os campos');
       return;
     }
 
     if (bolaoPassword.length < 4) {
       toast.error('A senha deve ter no mínimo 4 caracteres');
+      return;
+    }
+
+    if (adminPassword.length < 4) {
+      toast.error('A senha de admin deve ter no mínimo 4 caracteres');
       return;
     }
 
@@ -106,6 +112,7 @@ export default function BolaoSelector({ onBolaoSelected, urlParams, refreshTrigg
         body: JSON.stringify({
           name: bolaoName,
           password: bolaoPassword,
+          adminPassword: adminPassword,
           createdBy: creatorName,
         }),
       });
@@ -363,6 +370,25 @@ export default function BolaoSelector({ onBolaoSelected, urlParams, refreshTrigg
             />
             <p className="text-xs text-gray-500 mt-1">
               Compartilhe esta senha com quem você quer convidar
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Senha de Administração
+            </label>
+            <input
+              type="password"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+              placeholder="Mínimo 4 caracteres"
+              disabled={loading}
+              minLength={4}
+              autoComplete="new-password"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Use esta senha para acessar o painel de administração
             </p>
           </div>
 

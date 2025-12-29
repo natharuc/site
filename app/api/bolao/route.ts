@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
       bolao: {
         id: bolao._id.toString(),
         name: bolao.displayName || bolao.name,
+        adminPassword: bolao.adminPassword,
         createdAt: bolao.createdAt,
         createdBy: bolao.createdBy,
         participants
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, password, createdBy } = body;
+    const { name, password, adminPassword, createdBy } = body;
 
     // Validações
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -107,6 +108,13 @@ export async function POST(request: NextRequest) {
     if (!password || typeof password !== 'string' || password.length < 4) {
       return NextResponse.json(
         { success: false, error: 'Senha deve ter no mínimo 4 caracteres' },
+        { status: 400 }
+      );
+    }
+
+    if (!adminPassword || typeof adminPassword !== 'string' || adminPassword.length < 4) {
+      return NextResponse.json(
+        { success: false, error: 'Senha de administração deve ter no mínimo 4 caracteres' },
         { status: 400 }
       );
     }
@@ -138,6 +146,7 @@ export async function POST(request: NextRequest) {
       name: name.toLowerCase().trim(),
       displayName: name.trim(),
       password,
+      adminPassword,
       createdBy: createdBy.trim(),
       createdAt: new Date().toISOString(),
     };
@@ -149,6 +158,7 @@ export async function POST(request: NextRequest) {
       bolao: {
         id: result.insertedId.toString(),
         name: bolao.displayName,
+        adminPassword: bolao.adminPassword,
         createdAt: bolao.createdAt,
         createdBy: bolao.createdBy,
         participants: 0

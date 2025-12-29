@@ -8,16 +8,17 @@ import { Vote } from '../types';
 interface AdminPanelProps {
   votes: Vote[];
   onVoteDeleted: () => void;
+  adminPassword?: string;
 }
 
-export default function AdminPanel({ votes, onVoteDeleted }: AdminPanelProps) {
+export default function AdminPanel({ votes, onVoteDeleted, adminPassword }: AdminPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
-  // Senha simples (em produção, use autenticação real)
-  const ADMIN_PASSWORD = 'megasena2025';
+  // Senha padrão apenas se não houver bolão
+  const ADMIN_PASSWORD = adminPassword || 'megasena2025';
 
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
