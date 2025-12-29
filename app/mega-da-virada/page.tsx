@@ -123,6 +123,8 @@ export default function MegaDaVirada() {
     setLoading(true);
     try {
       const method = isEditing ? 'PUT' : 'POST';
+      console.log('Enviando voto:', { method, name: name.trim(), numbers: selectedNumbers, bolaoId: currentBolao?.id });
+      
       const response = await fetch('/api/mega-sena', {
         method,
         headers: {
@@ -134,6 +136,8 @@ export default function MegaDaVirada() {
           ...(currentBolao && { bolaoId: currentBolao.id }),
         }),
       });
+
+      console.log('Resposta recebida:', response.status, response.statusText);
 
       if (response.ok) {
         setSubmitted(true);

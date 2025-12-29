@@ -156,9 +156,11 @@ export async function POST(request: NextRequest) {
 
 // PUT - Atualizar números de um voto existente
 export async function PUT(request: NextRequest) {
+  console.log('PUT /api/mega-sena chamado');
   try {
     const body = await request.json();
     const { name, numbers, bolaoId } = body;
+    console.log('Dados recebidos no PUT:', { name, numbers: numbers?.length, bolaoId });
 
     // Validações
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
