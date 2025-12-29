@@ -77,6 +77,41 @@ export default function MegaDaVirada() {
     fetchVotes();
   }, [fetchVotes]);
 
+  // Escutar mudanças em tempo real via SSE (Server-Sent Events)
+  useEffect(() => {
+    const url = currentBolao 
+      ? `/api/mega-sena/stream?bolaoId=${currentBolao.id}` 
+      : '/api/mega-sena/stream';
+    
+    const eventSource = new EventSource(url);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'connected') {
+          console.log('Conectado ao stream de atualizações em tempo real');
+        } else if (data.type === 'insert' || data.type === 'update' || data.type === 'delete') {
+          console.log('Atualização detectada:', data.type);
+          // Recarregar votos quando houver mudança
+          fetchVotes();
+        }
+      } catch (error) {
+        console.error('Erro ao processar evento SSE:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('Erro no EventSource:', error);
+      eventSource.close();
+    };
+
+    // Cleanup ao desmontar ou mudar de bolão
+    return () => {
+      eventSource.close();
+    };
+  }, [currentBolao, fetchVotes]);
+
   // Atualizar título da página
   useEffect(() => {
     if (currentBolao) {

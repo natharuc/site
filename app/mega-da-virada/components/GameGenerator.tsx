@@ -34,10 +34,22 @@ export default function GameGenerator({ votes }: GameGeneratorProps) {
   }, [votes]);
 
   // Gerar jogos baseados na configuração
-  // Gerar jogos baseados na configuração
   const games = useMemo(() => {
     const result: number[][] = [];
     const usedNumbers = new Set<number>();
+
+    // Função para embaralhar array (Fisher-Yates shuffle)
+    const shuffleArray = <T,>(array: T[]): T[] => {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    };
+
+    // Criar uma lista de números disponíveis embaralhada
+    const availableNumbers = shuffleArray(getMostVotedNumbers.map(({ number }) => number));
 
     gameConfigs
       .sort((a, b) => b.size - a.size) // Começar pelos jogos maiores
@@ -45,25 +57,33 @@ export default function GameGenerator({ votes }: GameGeneratorProps) {
         for (let i = 0; i < config.quantity; i++) {
           const game: number[] = [];
           
-          // Pegar números mais votados que ainda não foram usados
-          for (const { number } of getMostVotedNumbers) {
+          // Pegar números mais votados que ainda não foram usados (já embaralhados)
+          for (const number of availableNumbers) {
             if (!usedNumbers.has(number) && game.length < config.size) {
               game.push(number);
               usedNumbers.add(number);
             }
           }
 
-          // Se não tiver números suficientes, preencher com números não votados
+          // Se não tiver números suficientes, preencher com números não votados (embaralhados)
           if (game.length < config.size) {
-            for (let num = 1; num <= 60; num++) {
-              if (!usedNumbers.has(num) && game.length < config.size) {
+            const nonVotedNumbers = shuffleArray(
+              Array.from({ length: 60 }, (_, i) => i + 1)
+                .filter(num => !usedNumbers.has(num))
+            );
+            
+            for (const num of nonVotedNumbers) {
+              if (game.length < config.size) {
                 game.push(num);
                 usedNumbers.add(num);
+              } else {
+                break;
               }
             }
           }
 
-          result.push(game.sort((a, b) => a - b));
+          // NÃO ordenar - manter distribuição aleatória
+          result.push(game);
         }
       });
 
