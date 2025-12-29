@@ -1,3 +1,5 @@
+import { FaDiceD6 } from 'react-icons/fa';
+
 interface NumberSelectorProps {
   selectedNumbers: number[];
   onNumbersChange: (numbers: number[]) => void;
@@ -22,19 +24,44 @@ export default function NumberSelector({
     }
   };
 
+  const selectRandomNumbers = () => {
+    if (disabled) return;
+    
+    const randomNumbers: number[] = [];
+    while (randomNumbers.length < numbersToSelect) {
+      const randomNum = Math.floor(Math.random() * maxNumbers) + 1;
+      if (!randomNumbers.includes(randomNum)) {
+        randomNumbers.push(randomNum);
+      }
+    }
+    onNumbersChange(randomNumbers.sort((a, b) => a - b));
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
         <label className="block text-sm font-medium text-gray-700">
           Selecione 6 números (1 a 60)
         </label>
-        <span className={`text-sm font-bold ${
-          selectedNumbers.length === numbersToSelect 
-            ? 'text-green-600' 
-            : 'text-gray-500'
-        }`}>
-          {selectedNumbers.length}/{numbersToSelect}
-        </span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={selectRandomNumbers}
+            disabled={disabled}
+            className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md font-medium text-sm"
+            title="Escolher números aleatórios"
+          >
+            <FaDiceD6 size={18} />
+            Surpresinha
+          </button>
+          <span className={`text-sm font-bold ${
+            selectedNumbers.length === numbersToSelect 
+              ? 'text-green-600' 
+              : 'text-gray-500'
+          }`}>
+            {selectedNumbers.length}/{numbersToSelect}
+          </span>
+        </div>
       </div>
 
       {/* Números selecionados */}
