@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import { FiCopy, FiSettings, FiEyeOff, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { Vote, GameConfig } from '../types';
@@ -17,6 +17,13 @@ export default function GameGenerator({ votes }: GameGeneratorProps) {
   ]);
 
   const [showConfig, setShowConfig] = useState(false);
+  const [games, setGames] = useState<number[][]>([]);
+  const [isClient, setIsClient] = useState(false);
+
+  // Marcar que estamos no cliente
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Calcular os números mais votados
   const getMostVotedNumbers = useMemo(() => {
@@ -33,62 +40,68 @@ export default function GameGenerator({ votes }: GameGeneratorProps) {
       .sort((a, b) => b.count - a.count);
   }, [votes]);
 
-  // Gerar jogos baseados na configuração
-  const games = useMemo(() => {
-    const result: number[][] = [];
-    const usedNumbers = new Set<number>();
+  // Gerar jogos apenas no cliente para evitar erro de hidratação
+  useEffect(() => {
+    if (!isClient) return;
 
-    // Função para embaralhar array (Fisher-Yates shuffle)
-    const shuffleArray = <T,>(array: T[]): T[] => {
-      const shuffled = [...array];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      return shuffled;
-    };
+    const generateGames = () => {
+      const result: number[][] = [];
+      const usedNumbers = new Set<number>();
 
-    // Criar uma lista de números disponíveis embaralhada
-    const availableNumbers = shuffleArray(getMostVotedNumbers.map(({ number }) => number));
+      // Função para embaralhar array (Fisher-Yates shuffle)
+      const shuffleArray = <T,>(array: T[]): T[] => {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+      };
 
-    gameConfigs
-      .sort((a, b) => b.size - a.size) // Começar pelos jogos maiores
-      .forEach(config => {
-        for (let i = 0; i < config.quantity; i++) {
-          const game: number[] = [];
-          
-          // Pegar números mais votados que ainda não foram usados (já embaralhados)
-          for (const number of availableNumbers) {
-            if (!usedNumbers.has(number) && game.length < config.size) {
-              game.push(number);
-              usedNumbers.add(number);
-            }
-          }
+      // Criar uma lista de números disponíveis embaralhada
+      const availableNumbers = shuffleArray(getMostVotedNumbers.map(({ number }) => number));
 
-          // Se não tiver números suficientes, preencher com números não votados (embaralhados)
-          if (game.length < config.size) {
-            const nonVotedNumbers = shuffleArray(
-              Array.from({ length: 60 }, (_, i) => i + 1)
-                .filter(num => !usedNumbers.has(num))
-            );
+      gameConfigs
+        .sort((a, b) => b.size - a.size) // Começar pelos jogos maiores
+        .forEach(config => {
+          for (let i = 0; i < config.quantity; i++) {
+            const game: number[] = [];
             
-            for (const num of nonVotedNumbers) {
-              if (game.length < config.size) {
-                game.push(num);
-                usedNumbers.add(num);
-              } else {
-                break;
+            // Pegar números mais votados que ainda não foram usados (já embaralhados)
+            for (const number of availableNumbers) {
+              if (!usedNumbers.has(number) && game.length < config.size) {
+                game.push(number);
+                usedNumbers.add(number);
               }
             }
+
+            // Se não tiver números suficientes, preencher com números não votados (embaralhados)
+            if (game.length < config.size) {
+              const nonVotedNumbers = shuffleArray(
+                Array.from({ length: 60 }, (_, i) => i + 1)
+                  .filter(num => !usedNumbers.has(num))
+              );
+              
+              for (const num of nonVotedNumbers) {
+                if (game.length < config.size) {
+                  game.push(num);
+                  usedNumbers.add(num);
+                } else {
+                  break;
+                }
+              }
+            }
+
+            // NÃO ordenar - manter distribuição aleatória
+            result.push(game);
           }
+        });
 
-          // NÃO ordenar - manter distribuição aleatória
-          result.push(game);
-        }
-      });
+      return result;
+    };
 
-    return result;
-  }, [getMostVotedNumbers, gameConfigs]);
+    setGames(generateGames());
+  }, [isClient, getMostVotedNumbers, gameConfigs]);
 
   const addConfig = () => {
     setGameConfigs([...gameConfigs, { size: 6, quantity: 1 }]);
