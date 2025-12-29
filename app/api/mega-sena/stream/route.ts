@@ -53,14 +53,29 @@ export async function GET(request: NextRequest) {
         changeStream.on('change', (change) => {
           console.log('Change detected:', change.operationType);
           
-          const eventData = {
-            type: change.operationType,
-            document: change.fullDocument,
-            timestamp: new Date().toISOString()
-          };
+          // Apenas processar eventos que têm fullDocument
+          if (change.operationType === 'insert' || 
+              change.operationType === 'update' || 
+              change.operationType === 'replace') {
+            const eventData = {
+              type: change.operationType,
+              document: 'fullDocument' in change ? change.fullDocument : null,
+              timestamp: new Date().toISOString()
+            };
 
-          const message = encoder.encode(`data: ${JSON.stringify(eventData)}\n\n`);
-          controller.enqueue(message);
+            const message = encoder.encode(`data: ${JSON.stringify(eventData)}\n\n`);
+            controller.enqueue(message);
+          } else if (change.operationType === 'delete') {
+            // Para delete, enviar apenas o tipo
+            const eventData = {
+              type: 'delete',
+              documentId: 'documentKey' in change ? change.documentKey : null,
+              timestamp: new Date().toISOString()
+            };
+
+            const message = encoder.encode(`data: ${JSON.stringify(eventData)}\n\n`);
+            controller.enqueue(message);
+          }
         });
 
         changeStream.on('error', (error) => {
