@@ -77,7 +77,9 @@ export async function GET(request: NextRequest) {
         createdBy: bolao.createdBy,
         participants,
         locked: bolao.locked || false,
-        betPlaced: bolao.betPlaced || false
+        betPlaced: bolao.betPlaced || false,
+        selectedGames: bolao.selectedGames || [],
+        prizeAmount: bolao.prizeAmount || ''
       }
     });
   } catch (error) {
@@ -97,7 +99,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, password, adminPassword, createdBy } = body;
+    const { name, password, adminPassword, createdBy, prizeAmount } = body;
 
     // Validações
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -152,7 +154,9 @@ export async function POST(request: NextRequest) {
       createdBy: createdBy.trim(),
       createdAt: new Date().toISOString(),
       locked: false,
-      betPlaced: false
+      betPlaced: false,
+      selectedGames: [],
+      prizeAmount: prizeAmount || ''
     };
 
     const result = await collection.insertOne(bolao);
@@ -167,7 +171,9 @@ export async function POST(request: NextRequest) {
         createdBy: bolao.createdBy,
         participants: 0,
         locked: false,
-        betPlaced: false
+        betPlaced: false,
+        selectedGames: [],
+        prizeAmount: bolao.prizeAmount
       }
     });
   } catch (error) {

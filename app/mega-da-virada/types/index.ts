@@ -16,6 +16,8 @@ export interface Bolao {
   participants?: number;
   locked?: boolean;
   betPlaced?: boolean;
+  selectedGames?: number[][];
+  prizeAmount?: string;
 }
 
 export interface GameConfig {

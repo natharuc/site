@@ -22,15 +22,15 @@ async function connectToDatabase() {
   return client;
 }
 
-// PUT - Atualizar status do bolão (travar/destravar, marcar aposta)
+// PUT - Atualizar status do bolão (travar/destravar, marcar aposta, jogos selecionados)
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { bolaoId, adminPassword, locked, betPlaced } = body;
+    const { bolaoId, adminPassword, locked, betPlaced, selectedGames, prizeAmount } = body;
 
-    if (!bolaoId || !adminPassword) {
+    if (!bolaoId) {
       return NextResponse.json(
-        { success: false, error: 'ID do bolão e senha de admin são obrigatórios' },
+        { success: false, error: 'ID do bolão é obrigatório' },
         { status: 400 }
       );
     }
@@ -49,8 +49,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Verificar senha de admin
-    if (bolao.adminPassword !== adminPassword) {
+    // Verificar senha de admin apenas se fornecida
+    if (adminPassword && bolao.adminPassword !== adminPassword) {
       return NextResponse.json(
         { success: false, error: 'Senha de administração incorreta' },
         { status: 401 }
@@ -58,9 +58,11 @@ export async function PUT(request: NextRequest) {
     }
 
     // Atualizar campos
-    const updates: { locked?: boolean; betPlaced?: boolean } = {};
+    const updates: { locked?: boolean; betPlaced?: boolean; selectedGames?: number[][]; prizeAmount?: string } = {};
     if (locked !== undefined) updates.locked = locked;
     if (betPlaced !== undefined) updates.betPlaced = betPlaced;
+    if (selectedGames !== undefined) updates.selectedGames = selectedGames;
+    if (prizeAmount !== undefined) updates.prizeAmount = prizeAmount;
 
     await collection.updateOne(
       { _id: new ObjectId(bolaoId) },

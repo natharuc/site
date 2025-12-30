@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
 import { GiClover } from 'react-icons/gi';
-import { FiUsers } from 'react-icons/fi';
+import { FiUsers, FiLock, FiCheck } from 'react-icons/fi';
 import { 
   NumberSelector, 
   Statistics, 
   GameGenerator, 
   BolaoSelector,
-  AdminFloatingButton
+  AdminFloatingButton,
+  GameChecker
 } from './components';
 import { Vote, Bolao } from './types';
 
@@ -258,7 +259,7 @@ export default function MegaDaVirada() {
         {currentBolao?.locked && (
           <div className="bg-red-500 border-2 border-red-700 text-white px-6 py-4 rounded-xl mb-8 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="text-4xl">🔒</div>
+              <FiLock className="text-white" size={40} />
               <div>
                 <h3 className="text-xl font-bold mb-1">Bolão Travado</h3>
                 <p className="text-red-100">
@@ -318,7 +319,14 @@ export default function MegaDaVirada() {
               votes={votes} 
               isLocked={true}
               showOnlySelected={true}
+              currentBolao={currentBolao}
+              onBolaoUpdate={() => setBolaoRefreshTrigger(prev => prev + 1)}
             />
+
+            {/* Conferir Resultados */}
+            {currentBolao?.selectedGames && currentBolao.selectedGames.length > 0 && (
+              <GameChecker selectedGames={currentBolao.selectedGames} bolao={currentBolao} />
+            )}
           </div>
         ) : (
           // Visualização Normal
@@ -422,8 +430,9 @@ export default function MegaDaVirada() {
                   </div>
 
                   {submitted && (
-                    <div className="bg-green-100 border-2 border-green-500 text-green-800 px-4 py-3 rounded-lg text-center font-medium">
-                      ✓ Números enviados com sucesso!
+                    <div className="bg-green-100 border-2 border-green-500 text-green-800 px-4 py-3 rounded-lg text-center font-medium flex items-center justify-center gap-2">
+                      <FiCheck size={18} />
+                      Números enviados com sucesso!
                     </div>
                   )}
                 </form>
@@ -438,7 +447,14 @@ export default function MegaDaVirada() {
               votes={votes} 
               isLocked={currentBolao?.locked || false}
               showOnlySelected={currentBolao?.locked || false}
+              currentBolao={currentBolao}
+              onBolaoUpdate={() => setBolaoRefreshTrigger(prev => prev + 1)}
             />
+
+            {/* Conferir Resultados */}
+            {currentBolao?.selectedGames && currentBolao.selectedGames.length > 0 && (
+              <GameChecker selectedGames={currentBolao.selectedGames} bolao={currentBolao} />
+            )}
 
           </>
         )}

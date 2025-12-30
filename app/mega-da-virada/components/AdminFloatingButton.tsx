@@ -19,6 +19,7 @@ export default function AdminFloatingButton({ bolao, votes, onUpdate, onVoteDele
   const [activeTab, setActiveTab] = useState<'bolao' | 'votos' | 'participantes'>('bolao');
   const [loading, setLoading] = useState(false);
   const [newParticipantName, setNewParticipantName] = useState('');
+  const [prizeAmount, setPrizeAmount] = useState(bolao?.prizeAmount || '');
 
   if (!bolao?.adminPassword) return null;
 
@@ -308,6 +309,51 @@ export default function AdminFloatingButton({ bolao, votes, onUpdate, onVoteDele
                           </p>
                           <p className="text-sm text-purple-800 mt-1">
                             Participantes: <span className="font-bold">{bolao.participants || 0}</span>
+                          </p>
+                        </div>
+
+                        {/* Valor do Prêmio */}
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <label className="block text-sm font-bold text-green-800 mb-2">
+                            Valor do Prêmio
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={prizeAmount}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^\d,]/g, '');
+                                setPrizeAmount(value);
+                              }}
+                              className="flex-1 px-4 py-2 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
+                              placeholder="Ex: 600000000,00"
+                            />
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch('/api/bolao/admin', {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      bolaoId: bolao.id,
+                                      prizeAmount: prizeAmount
+                                    }),
+                                  });
+                                  if (response.ok) {
+                                    toast.success('Valor do prêmio atualizado!');
+                                    onUpdate();
+                                  }
+                                } catch {
+                                  toast.error('Erro ao atualizar valor');
+                                }
+                              }}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                            >
+                              Salvar
+                            </button>
+                          </div>
+                          <p className="text-xs text-green-600 mt-1">
+                            Ex: 600000000,00 para R$ 600 milhões
                           </p>
                         </div>
 

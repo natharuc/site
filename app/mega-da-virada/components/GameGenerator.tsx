@@ -2,16 +2,18 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { FiCopy, FiSettings, FiEyeOff, FiPlus, FiTrash2 } from 'react-icons/fi';
-import { Vote, GameConfig } from '../types';
+import { FiCopy, FiSettings, FiEyeOff, FiPlus, FiTrash2, FiAlertTriangle } from 'react-icons/fi';
+import { Vote, GameConfig, Bolao } from '../types';
 
 interface GameGeneratorProps {
   votes: Vote[];
   isLocked?: boolean;
   showOnlySelected?: boolean;
+  currentBolao?: Bolao | null;
+  onBolaoUpdate?: () => void;
 }
 
-export default function GameGenerator({ votes, isLocked = false, showOnlySelected = false }: GameGeneratorProps) {
+export default function GameGenerator({ votes, isLocked = false, showOnlySelected = false, currentBolao = null, onBolaoUpdate }: GameGeneratorProps) {
   const [gameConfigs, setGameConfigs] = useState<GameConfig[]>([
     { size: 9, quantity: 1 },
     { size: 8, quantity: 2 },
@@ -24,19 +26,27 @@ export default function GameGenerator({ votes, isLocked = false, showOnlySelecte
   const [selectedGames, setSelectedGames] = useState<number[][]>([]);
   const [editingGame, setEditingGame] = useState<number | null>(null);
   const [editingNumbers, setEditingNumbers] = useState<number[]>([]);
+  const [manualGameInput, setManualGameInput] = useState('');
 
   // Marcar que estamos no cliente e carregar jogos salvos
   useEffect(() => {
     setIsClient(true);
-    const saved = localStorage.getItem('megasena_selected_games');
-    if (saved) {
-      try {
-        setSelectedGames(JSON.parse(saved));
-      } catch (error) {
-        console.error('Erro ao carregar jogos salvos:', error);
+    
+    // Se tem bolão, usa os jogos do bolão
+    if (currentBolao?.selectedGames) {
+      setSelectedGames(currentBolao.selectedGames);
+    } else {
+      // Senão, tenta do localStorage
+      const saved = localStorage.getItem('megasena_selected_games');
+      if (saved) {
+        try {
+          setSelectedGames(JSON.parse(saved));
+        } catch (error) {
+          console.error('Erro ao carregar jogos salvos:', error);
+        }
       }
     }
-  }, []);
+  }, [currentBolao]);
 
   // Calcular os números mais votados
   const getMostVotedNumbers = useMemo(() => {
@@ -132,18 +142,64 @@ export default function GameGenerator({ votes, isLocked = false, showOnlySelecte
 
   const totalNumbers = gameConfigs.reduce((sum, config) => sum + (config.size * config.quantity), 0);
 
-  const selectGame = (gameIndex: number) => {
+  const selectGame = async (gameIndex: number) => {
     const game = games[gameIndex];
     const newSelected = [...selectedGames, game];
     setSelectedGames(newSelected);
-    localStorage.setItem('megasena_selected_games', JSON.stringify(newSelected));
+    
+    // Se tem bolão, salva no MongoDB
+    if (currentBolao?.id) {
+      try {
+        await fetch('/api/bolao/admin', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bolaoId: currentBolao.id,
+            selectedGames: newSelected
+          }),
+        });
+        onBolaoUpdate?.();
+      } catch (error) {
+        console.error('Erro ao salvar jogos:', error);
+        toast.error('Erro ao salvar jogos');
+      }
+    } else {
+      // Senão, salva no localStorage
+      localStorage.setItem('megasena_selected_games', JSON.stringify(newSelected));
+    }
+    
     toast.success(`Jogo ${gameIndex + 1} selecionado!`);
   };
 
-  const removeSelectedGame = (index: number) => {
+  const removeSelectedGame = async (index: number) => {
     const newSelected = selectedGames.filter((_, i) => i !== index);
     setSelectedGames(newSelected);
-    localStorage.setItem('megasena_selected_games', JSON.stringify(newSelected));
+    
+    // Se tem bolão, salva no MongoDB
+    if (currentBolao?.id) {
+      try {
+        await fetch('/api/bolao/admin', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bolaoId: currentBolao.id,
+            selectedGames: newSelected
+          }),
+        });
+        onBolaoUpdate?.();
+      } catch (error) {
+        console.error('Erro ao salvar jogos:', error);
+        toast.error('Erro ao salvar jogos');
+      }
+    } else {
+      // Senão, salva no localStorage
+      localStorage.setItem('megasena_selected_games', JSON.stringify(newSelected));
+    }
+    
     toast.info('Jogo removido');
   };
 
@@ -160,13 +216,36 @@ export default function GameGenerator({ votes, isLocked = false, showOnlySelecte
     }
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (editingGame === null) return;
     
     const newSelected = [...selectedGames];
     newSelected[editingGame] = editingNumbers;
     setSelectedGames(newSelected);
-    localStorage.setItem('megasena_selected_games', JSON.stringify(newSelected));
+    
+    // Se tem bolão, salva no MongoDB
+    if (currentBolao?.id) {
+      try {
+        await fetch('/api/bolao/admin', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bolaoId: currentBolao.id,
+            selectedGames: newSelected
+          }),
+        });
+        onBolaoUpdate?.();
+      } catch (error) {
+        console.error('Erro ao salvar jogos:', error);
+        toast.error('Erro ao salvar jogos');
+      }
+    } else {
+      // Senão, salva no localStorage
+      localStorage.setItem('megasena_selected_games', JSON.stringify(newSelected));
+    }
+    
     setEditingGame(null);
     setEditingNumbers([]);
     toast.success('Jogo atualizado!');
@@ -235,6 +314,73 @@ export default function GameGenerator({ votes, isLocked = false, showOnlySelecte
     toast.info('Novos jogos gerados!');
   };
 
+  const handleAddManualGame = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!manualGameInput.trim()) {
+      toast.error('Digite os números do jogo');
+      return;
+    }
+
+    // Parse dos números - aceita vírgula, espaço, pipe e ponto e vírgula como separadores
+    const normalizedInput = manualGameInput
+      .replace(/\|/g, ',')  // substitui pipe por vírgula
+      .replace(/;/g, ',')   // substitui ponto e vírgula por vírgula
+      .replace(/\s+/g, ',') // substitui espaços por vírgula
+      .replace(/,+/g, ','); // remove vírgulas duplicadas
+    
+    const numbersStr = normalizedInput.split(',').map(n => n.trim()).filter(n => n);
+    const numbers = numbersStr.map(n => parseInt(n)).filter(n => !isNaN(n));
+
+    // Validações
+    if (numbers.length < 6 || numbers.length > 15) {
+      toast.error('O jogo deve ter entre 6 e 15 números');
+      return;
+    }
+
+    const invalidNumbers = numbers.filter(n => n < 1 || n > 60);
+    if (invalidNumbers.length > 0) {
+      toast.error('Todos os números devem estar entre 1 e 60');
+      return;
+    }
+
+    const uniqueNumbers = [...new Set(numbers)];
+    if (uniqueNumbers.length !== numbers.length) {
+      toast.error('Não pode haver números repetidos');
+      return;
+    }
+
+    // Adicionar jogo
+    const newSelected = [...selectedGames, uniqueNumbers];
+    setSelectedGames(newSelected);
+    
+    // Se tem bolão, salva no MongoDB
+    if (currentBolao?.id) {
+      try {
+        await fetch('/api/bolao/admin', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bolaoId: currentBolao.id,
+            selectedGames: newSelected
+          }),
+        });
+        onBolaoUpdate?.();
+      } catch (error) {
+        console.error('Erro ao salvar jogo:', error);
+        toast.error('Erro ao salvar jogo');
+      }
+    } else {
+      // Senão, salva no localStorage
+      localStorage.setItem('megasena_selected_games', JSON.stringify(newSelected));
+    }
+    
+    setManualGameInput('');
+    toast.success('Jogo adicionado com sucesso!');
+  };
+
   return (
     <div className="mt-8 bg-white rounded-2xl shadow-2xl p-8">
       <div className="flex justify-between items-center mb-6">
@@ -255,7 +401,7 @@ export default function GameGenerator({ votes, isLocked = false, showOnlySelecte
       {/* Aviso quando está travado mas não tem jogos */}
       {showOnlySelected && selectedGames.length === 0 && (
         <div className="text-center py-12">
-          <div className="text-yellow-600 text-6xl mb-4">⚠️</div>
+          <FiAlertTriangle className="inline text-yellow-600 mb-4" size={64} />
           <h3 className="text-2xl font-bold text-gray-800 mb-2">Nenhum jogo selecionado</h3>
           <p className="text-gray-600">
             O bolão está travado mas não há jogos selecionados.
@@ -332,29 +478,78 @@ export default function GameGenerator({ votes, isLocked = false, showOnlySelecte
         </div>
       )}
 
-      {/* Jogos Selecionados */}
-      {selectedGames.length > 0 && (
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-purple-800">
-              Meus Jogos Selecionados ({selectedGames.length})
-            </h3>
-            {!isLocked && (
-              <button
-                onClick={() => {
-                  setSelectedGames([]);
+      {/* Jogos Efetuados */}
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-bold text-purple-800">
+            Jogos Efetuados ({selectedGames.length})
+          </h3>
+          {!isLocked && selectedGames.length > 0 && (
+            <button
+              onClick={async () => {
+                if (currentBolao?.id) {
+                  await fetch('/api/bolao/admin', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      bolaoId: currentBolao.id,
+                      selectedGames: []
+                    }),
+                  });
+                  onBolaoUpdate?.();
+                } else {
                   localStorage.removeItem('megasena_selected_games');
-                  toast.info('Todos os jogos removidos');
-                }}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
+                }
+                setSelectedGames([]);
+                toast.info('Todos os jogos removidos');
+              }}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
+            >
+              Limpar Todos
+            </button>
+          )}
+        </div>
+
+        {/* Adicionar Jogo Manual */}
+        {!isLocked && (
+          <form onSubmit={handleAddManualGame} className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="font-bold text-blue-800 mb-2">Adicionar Jogo Manualmente</h4>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={manualGameInput}
+                onChange={(e) => setManualGameInput(e.target.value)}
+                placeholder="Ex: 4, 8, 17, 23, 35, 59"
+                className="flex-1 px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                autoComplete="off"
+              />
+              <button
+                type="submit"
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
-                Limpar Todos
+                Adicionar
               </button>
-            )}
+            </div>
+            <p className="text-xs text-blue-600 mt-2">
+              Digite 6 a 15 números separados por vírgula (1-60)
+            </p>
+          </form>
+        )}
+
+        {selectedGames.length === 0 ? (
+          <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <p className="text-gray-500 text-lg font-medium">Nenhum jogo adicionado ainda</p>
+            <p className="text-gray-400 text-sm mt-1">
+              {!isLocked ? 'Adicione jogos manualmente ou selecione dos jogos sugeridos abaixo' : 'Aguarde o administrador adicionar jogos'}
+            </p>
           </div>
-          
+        ) : (
           <div className="space-y-4">
-            {selectedGames.map((game, index) => (
+            {/* Ordenar por número de dezenas (mais dezenas primeiro) */}
+            {[...selectedGames]
+              .map((game, originalIndex) => ({ game, originalIndex }))
+              .sort((a, b) => b.game.length - a.game.length)
+              .map(({ game, originalIndex: index }) => (
               <div key={index} className="border-2 border-purple-300 rounded-lg p-6 bg-gradient-to-r from-purple-50 to-pink-50">
                 {editingGame === index ? (
                   // Modo de edição
@@ -435,8 +630,8 @@ export default function GameGenerator({ votes, isLocked = false, showOnlySelecte
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Jogos gerados */}
       {!showOnlySelected && (

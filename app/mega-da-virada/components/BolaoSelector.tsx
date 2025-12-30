@@ -18,6 +18,7 @@ export default function BolaoSelector({ onBolaoSelected, urlParams, refreshTrigg
   const [bolaoPassword, setBolaoPassword] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [creatorName, setCreatorName] = useState('');
+  const [prizeAmount, setPrizeAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentBolao, setCurrentBolao] = useState<Bolao | null>(null);
 
@@ -114,6 +115,7 @@ export default function BolaoSelector({ onBolaoSelected, urlParams, refreshTrigg
           password: bolaoPassword,
           adminPassword: adminPassword,
           createdBy: creatorName,
+          prizeAmount: prizeAmount,
         }),
       });
 
@@ -389,6 +391,27 @@ export default function BolaoSelector({ onBolaoSelected, urlParams, refreshTrigg
             />
             <p className="text-xs text-gray-500 mt-1">
               Use esta senha para acessar o painel de administração
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Valor do Prêmio (opcional)
+            </label>
+            <input
+              type="text"
+              value={prizeAmount}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^\d,]/g, '');
+                setPrizeAmount(value);
+              }}
+              className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+              placeholder="Ex: 600000000,00"
+              disabled={loading}
+              autoComplete="off"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Digite o valor total do prêmio (ex: 600000000,00 para R$ 600 milhões)
             </p>
           </div>
 
