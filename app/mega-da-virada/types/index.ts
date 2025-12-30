@@ -14,6 +14,8 @@ export interface Bolao {
   createdAt: string;
   createdBy: string;
   participants?: number;
+  locked?: boolean;
+  betPlaced?: boolean;
 }
 
 export interface GameConfig {

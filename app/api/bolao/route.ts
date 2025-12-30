@@ -75,7 +75,9 @@ export async function GET(request: NextRequest) {
         adminPassword: bolao.adminPassword,
         createdAt: bolao.createdAt,
         createdBy: bolao.createdBy,
-        participants
+        participants,
+        locked: bolao.locked || false,
+        betPlaced: bolao.betPlaced || false
       }
     });
   } catch (error) {
@@ -149,6 +151,8 @@ export async function POST(request: NextRequest) {
       adminPassword,
       createdBy: createdBy.trim(),
       createdAt: new Date().toISOString(),
+      locked: false,
+      betPlaced: false
     };
 
     const result = await collection.insertOne(bolao);
@@ -161,7 +165,9 @@ export async function POST(request: NextRequest) {
         adminPassword: bolao.adminPassword,
         createdAt: bolao.createdAt,
         createdBy: bolao.createdBy,
-        participants: 0
+        participants: 0,
+        locked: false,
+        betPlaced: false
       }
     });
   } catch (error) {

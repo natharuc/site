@@ -7,9 +7,11 @@ import { Vote, GameConfig } from '../types';
 
 interface GameGeneratorProps {
   votes: Vote[];
+  isLocked?: boolean;
+  showOnlySelected?: boolean;
 }
 
-export default function GameGenerator({ votes }: GameGeneratorProps) {
+export default function GameGenerator({ votes, isLocked = false, showOnlySelected = false }: GameGeneratorProps) {
   const [gameConfigs, setGameConfigs] = useState<GameConfig[]>([
     { size: 9, quantity: 1 },
     { size: 8, quantity: 2 },
@@ -237,19 +239,35 @@ export default function GameGenerator({ votes }: GameGeneratorProps) {
     <div className="mt-8 bg-white rounded-2xl shadow-2xl p-8">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold text-green-800">
-          Gerador de Jogos
+          {showOnlySelected ? 'Jogos do Bolão' : 'Gerador de Jogos'}
         </h2>
-        <button
-          onClick={() => setShowConfig(!showConfig)}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-        >
-          {showConfig ? <FiEyeOff size={16} /> : <FiSettings size={16} />}
-          {showConfig ? 'Ocultar' : 'Configurar'} Jogos
-        </button>
+        {!isLocked && (
+          <button
+            onClick={() => setShowConfig(!showConfig)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+          >
+            {showConfig ? <FiEyeOff size={16} /> : <FiSettings size={16} />}
+            {showConfig ? 'Ocultar' : 'Configurar'} Jogos
+          </button>
+        )}
       </div>
 
+      {/* Aviso quando está travado mas não tem jogos */}
+      {showOnlySelected && selectedGames.length === 0 && (
+        <div className="text-center py-12">
+          <div className="text-yellow-600 text-6xl mb-4">⚠️</div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-2">Nenhum jogo selecionado</h3>
+          <p className="text-gray-600">
+            O bolão está travado mas não há jogos selecionados.
+          </p>
+          <p className="text-gray-600 mt-1">
+            Contate o administrador do bolão.
+          </p>
+        </div>
+      )}
+
       {/* Configurações */}
-      {showConfig && (
+      {!isLocked && showConfig && (
         <div className="mb-8 p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
           <h3 className="text-lg font-bold text-gray-800 mb-4">
             Configuração dos Jogos
@@ -321,16 +339,18 @@ export default function GameGenerator({ votes }: GameGeneratorProps) {
             <h3 className="text-xl font-bold text-purple-800">
               Meus Jogos Selecionados ({selectedGames.length})
             </h3>
-            <button
-              onClick={() => {
-                setSelectedGames([]);
-                localStorage.removeItem('megasena_selected_games');
-                toast.info('Todos os jogos removidos');
-              }}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
-            >
-              Limpar Todos
-            </button>
+            {!isLocked && (
+              <button
+                onClick={() => {
+                  setSelectedGames([]);
+                  localStorage.removeItem('megasena_selected_games');
+                  toast.info('Todos os jogos removidos');
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
+              >
+                Limpar Todos
+              </button>
+            )}
           </div>
           
           <div className="space-y-4">
@@ -381,20 +401,22 @@ export default function GameGenerator({ votes }: GameGeneratorProps) {
                       <h4 className="text-lg font-bold text-gray-800">
                         Jogo {index + 1} - {game.length} números
                       </h4>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => startEditing(index)}
-                          className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => removeSelectedGame(index)}
-                          className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
-                        >
-                          Remover
-                        </button>
-                      </div>
+                      {!isLocked && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => startEditing(index)}
+                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => removeSelectedGame(index)}
+                            className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-3">
                       {[...game].sort((a, b) => a - b).map((num, i) => (
@@ -417,18 +439,21 @@ export default function GameGenerator({ votes }: GameGeneratorProps) {
       )}
 
       {/* Jogos gerados */}
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-xl font-bold text-green-800">
-            Jogos Sugeridos
-          </h3>
-          <button
-            onClick={regenerateGames}
-            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
-          >
-            Gerar Novos Jogos
-          </button>
-        </div>
+      {!showOnlySelected && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-bold text-green-800">
+              Jogos Sugeridos
+            </h3>
+            {!isLocked && (
+              <button
+                onClick={regenerateGames}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
+              >
+                Gerar Novos Jogos
+              </button>
+            )}
+          </div>
         
         {games.length > 0 ? (
           games.map((game, index) => {
@@ -504,6 +529,7 @@ export default function GameGenerator({ votes }: GameGeneratorProps) {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

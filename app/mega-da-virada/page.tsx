@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
 import { GiClover } from 'react-icons/gi';
+import { FiUsers } from 'react-icons/fi';
 import { 
   NumberSelector, 
   Statistics, 
   GameGenerator, 
-  AdminPanel,
-  BolaoSelector 
+  BolaoSelector,
+  AdminFloatingButton
 } from './components';
 import { Vote, Bolao } from './types';
 
@@ -145,6 +146,12 @@ export default function MegaDaVirada() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Bloquear envio se o bolão estiver travado
+    if (currentBolao?.locked) {
+      toast.error('Este bolão está travado! Não é possível votar.');
+      return;
+    }
+    
     if (!name.trim()) {
       toast.error('Por favor, insira seu nome');
       return;
@@ -247,120 +254,207 @@ export default function MegaDaVirada() {
           onLoadingComplete={() => setDataLoaded(prev => ({ ...prev, bolao: true }))}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Formulário de votação */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
-            <h2 className="text-3xl font-bold text-green-800 mb-6">
-              {isEditing ? 'Editar Meus Números' : 'Escolha seus Números'}
-            </h2>
-            
-            {isEditing && (
-              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  Você já votou! Pode alterar seus números a qualquer momento.
+        {/* Banner de Bolão Travado */}
+        {currentBolao?.locked && (
+          <div className="bg-red-500 border-2 border-red-700 text-white px-6 py-4 rounded-xl mb-8 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="text-4xl">🔒</div>
+              <div>
+                <h3 className="text-xl font-bold mb-1">Bolão Travado</h3>
+                <p className="text-red-100">
+                  {currentBolao.betPlaced 
+                    ? 'A aposta já foi efetuada! Não é possível fazer alterações.'
+                    : 'Este bolão foi travado pelo administrador. Não é possível votar ou gerar novos jogos.'}
                 </p>
               </div>
-            )}
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label 
-                  htmlFor="name" 
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Seu Nome
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  placeholder="Digite seu nome"
-                  disabled={loading || isEditing}
-                  autoComplete="off"
-                />
-              </div>
+            </div>
+          </div>
+        )}
 
-              <NumberSelector
-                selectedNumbers={selectedNumbers}
-                onNumbersChange={setSelectedNumbers}
-                disabled={loading}
-              />
-
-              <div className="space-y-3">
-                <button
-                  type="submit"
-                  disabled={loading || selectedNumbers.length !== 6 || !name.trim()}
-                  className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-                >
-                  {loading ? 'Enviando...' : isEditing ? 'Atualizar Números' : 'Confirmar Números'}
-                </button>
-                
-                {isEditing && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!existingVote) return;
-                      
-                      // Deletar voto do banco de dados
-                      try {
-                        const response = await fetch(`/api/mega-sena?id=${existingVote.id}`, {
-                          method: 'DELETE',
-                        });
-                        
-                        if (response.ok) {
-                          localStorage.removeItem('megasena_user_name');
-                          setName('');
-                          setSelectedNumbers([]);
-                          setIsEditing(false);
-                          setExistingVote(null);
-                          await fetchVotes();
-                          
-                          // Atualizar contador de participantes do bolão
-                          if (currentBolao) {
-                            setBolaoRefreshTrigger(prev => prev + 1);
-                          }
-                          
-                          toast.success('Voto removido! Você pode fazer um novo voto agora');
-                        } else {
-                          toast.error('Erro ao remover voto');
-                        }
-                      } catch (error) {
-                        console.error('Erro ao deletar voto:', error);
-                        toast.error('Erro ao remover voto');
-                      }
-                    }}
-                    className="w-full bg-gray-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-600 transition-all"
+        {/* Visualização Simplificada - Aposta Efetuada */}
+        {currentBolao?.betPlaced ? (
+          <div className="space-y-8">
+            {/* Lista de Participantes */}
+            <div className="bg-white rounded-2xl shadow-2xl p-8">
+              <h2 className="text-3xl font-bold text-green-800 mb-6 flex items-center gap-3">
+                <FiUsers size={32} />
+                Participantes do Bolão ({votes.length})
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {votes.map((vote, index) => (
+                  <div 
+                    key={vote.id} 
+                    className="bg-gradient-to-r from-green-50 to-yellow-50 border-2 border-green-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
-                    Fazer Novo Voto (Limpar)
-                  </button>
-                )}
+                    <div className="flex items-center gap-3">
+                      <div className="bg-green-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-gray-800 text-lg">{vote.name}</p>
+                        <p className="text-sm text-gray-600">
+                          {new Date(vote.createdAt).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              {submitted && (
-                <div className="bg-green-100 border-2 border-green-500 text-green-800 px-4 py-3 rounded-lg text-center font-medium">
-                  ✓ Números enviados com sucesso!
+              {votes.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>Nenhum participante ainda</p>
                 </div>
               )}
-            </form>
+            </div>
+
+            {/* Jogos Selecionados */}
+            <GameGenerator 
+              votes={votes} 
+              isLocked={true}
+              showOnlySelected={true}
+            />
           </div>
+        ) : (
+          // Visualização Normal
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Formulário de votação */}
+              <div className="bg-white rounded-2xl shadow-2xl p-8">
+                <h2 className="text-3xl font-bold text-green-800 mb-6">
+                  {isEditing ? 'Editar Meus Números' : 'Escolha seus Números'}
+                </h2>
+                
+                {currentBolao?.locked && (
+                  <div className="mb-6 p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+                    <p className="text-red-800 font-bold text-center">
+                      🔒 Votação bloqueada - Bolão travado pelo administrador
+                    </p>
+                  </div>
+                )}
+                
+                {isEditing && !currentBolao?.locked && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      Você já votou! Pode alterar seus números a qualquer momento.
+                    </p>
+                  </div>
+                )}
+                
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label 
+                      htmlFor="name" 
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Seu Nome
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      placeholder="Digite seu nome"
+                      disabled={loading || isEditing || currentBolao?.locked}
+                      autoComplete="off"
+                    />
+                  </div>
 
-          {/* Estatísticas */}
-          <Statistics votes={votes} />
+                  <NumberSelector
+                    selectedNumbers={selectedNumbers}
+                    onNumbersChange={setSelectedNumbers}
+                    disabled={loading || currentBolao?.locked}
+                  />
+
+                  <div className="space-y-3">
+                    <button
+                      type="submit"
+                      disabled={loading || selectedNumbers.length !== 6 || !name.trim() || currentBolao?.locked}
+                      className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                    >
+                      {loading ? 'Enviando...' : isEditing ? 'Atualizar Números' : 'Confirmar Números'}
+                    </button>
+                    
+                    {isEditing && !currentBolao?.locked && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!existingVote) return;
+                          
+                          // Deletar voto do banco de dados
+                          try {
+                            const response = await fetch(`/api/mega-sena?id=${existingVote.id}`, {
+                              method: 'DELETE',
+                            });
+                            
+                            if (response.ok) {
+                              localStorage.removeItem('megasena_user_name');
+                              setName('');
+                              setSelectedNumbers([]);
+                              setIsEditing(false);
+                              setExistingVote(null);
+                              await fetchVotes();
+                              
+                              // Atualizar contador de participantes do bolão
+                              if (currentBolao) {
+                                setBolaoRefreshTrigger(prev => prev + 1);
+                              }
+                              
+                              toast.success('Voto removido! Você pode fazer um novo voto agora');
+                            } else {
+                              toast.error('Erro ao remover voto');
+                            }
+                          } catch (error) {
+                            toast.error('Erro ao remover voto');
+                          }
+                        }}
+                        className="w-full bg-gray-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-600 transition-all"
+                      >
+                        Fazer Novo Voto (Limpar)
+                      </button>
+                    )}
+                  </div>
+
+                  {submitted && (
+                    <div className="bg-green-100 border-2 border-green-500 text-green-800 px-4 py-3 rounded-lg text-center font-medium">
+                      ✓ Números enviados com sucesso!
+                    </div>
+                  )}
+                </form>
+              </div>
+
+              {/* Estatísticas */}
+              <Statistics votes={votes} />
+            </div>
+
+            {/* Gerador de Jogos */}
+            <GameGenerator 
+              votes={votes} 
+              isLocked={currentBolao?.locked || false}
+              showOnlySelected={currentBolao?.locked || false}
+            />
+
+          </>
+        )}
         </div>
-
-        {/* Gerador de Jogos */}
-        <GameGenerator votes={votes} />
       </div>
 
-        {/* Painel de Administração */}
-        <AdminPanel 
-          votes={votes} 
-          onVoteDeleted={fetchVotes}
-          adminPassword={currentBolao?.adminPassword}
-        />
-      </div>
+      {/* Floating Admin Button */}
+      <AdminFloatingButton 
+        bolao={currentBolao}
+        votes={votes}
+        onUpdate={() => {
+          setBolaoRefreshTrigger(prev => prev + 1);
+          fetchVotes();
+        }}
+        onVoteDeleted={fetchVotes}
+      />
     </>
   );
 }
