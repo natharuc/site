@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { FiCheckCircle, FiX, FiPlus, FiAward, FiTrendingUp, FiDollarSign, FiStar, FiZap, FiUsers } from 'react-icons/fi';
+import { FiCheckCircle, FiX, FiPlus, FiAward, FiTrendingUp, FiDollarSign, FiStar, FiZap, FiUsers, FiInfo, FiArrowRight } from 'react-icons/fi';
 
 interface GameCheckerProps {
   selectedGames: number[][];
   bolao?: { prizeAmount?: string } | null;
+  votes?: { length: number };
 }
 
 interface GameResult {
@@ -23,7 +24,7 @@ interface PrizeDistribution {
   quadra: number;
 }
 
-export default function GameChecker({ selectedGames, bolao }: GameCheckerProps) {
+export default function GameChecker({ selectedGames, bolao, votes }: GameCheckerProps) {
   const [drawnNumbers, setDrawnNumbers] = useState<number[]>([]);
   const [numberInput, setNumberInput] = useState('');
   const [externalWinners, setExternalWinners] = useState({
@@ -231,6 +232,9 @@ export default function GameChecker({ selectedGames, bolao }: GameCheckerProps) 
     senaPerWinner: number;
     quinaPerWinner: number;
     quadraPerWinner: number;
+    totalPerSenaWinner: number;
+    totalPerQuinaWinner: number;
+    totalPerQuadraWinner: number;
   } => {
     const prizeAmount = bolao?.prizeAmount || '';
     const prize = parseFloat(prizeAmount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
@@ -240,20 +244,50 @@ export default function GameChecker({ selectedGames, bolao }: GameCheckerProps) 
     const quinaTotal = prize * 0.19;
     const quadraTotal = prize * 0.19;
 
-    const senaWinners = results.filter(r => r.matchCount === 6).length + (parseInt(externalWinners.sena) || 0);
-    const quinaWinners = results.filter(r => r.matchCount === 5).length + (parseInt(externalWinners.quina) || 0);
-    const quadraWinners = results.filter(r => r.matchCount === 4).length + (parseInt(externalWinners.quadra) || 0);
+    // Contar ganhadores (bilhetes do bolão + externos)
+    // Quem ganha sena também ganha quina e quadra automaticamente
+    const externalSena = parseInt(externalWinners.sena) || 0;
+    const externalQuina = parseInt(externalWinners.quina) || 0;
+    const externalQuadra = parseInt(externalWinners.quadra) || 0;
+    
+    const bolaoSena = results.filter(r => r.matchCount === 6).length;
+    const bolaoQuina = results.filter(r => r.matchCount === 5).length;
+    const bolaoQuadra = results.filter(r => r.matchCount === 4).length;
+    
+    // Ganhadores da sena (só sena)
+    const senaCount = bolaoSena + externalSena;
+    
+    // Ganhadores da quina (quina pura + todos da sena)
+    const quinaCount = bolaoQuina + externalQuina + senaCount;
+    
+    // Ganhadores da quadra (quadra pura + todos da quina + todos da sena)
+    const quadraCount = bolaoQuadra + externalQuadra + quinaCount;
+
+    // Calcular valor por categoria
+    const senaPerWinner = senaCount > 0 ? senaTotal / senaCount : 0;
+    const quinaPerWinner = quinaCount > 0 ? quinaTotal / quinaCount : 0;
+    const quadraPerWinner = quadraCount > 0 ? quadraTotal / quadraCount : 0;
+
+    // Quem ganha sena, leva sena + quina + quadra
+    // Quem ganha quina (sem sena), leva quina + quadra
+    // Quem ganha quadra (sem quina e sena), leva só quadra
+    const totalPerSenaWinner = senaPerWinner + quinaPerWinner + quadraPerWinner;
+    const totalPerQuinaWinner = quinaPerWinner + quadraPerWinner;
+    const totalPerQuadraWinner = quadraPerWinner;
 
     return {
       sena: senaTotal,
       quina: quinaTotal,
       quadra: quadraTotal,
-      senaWinners,
-      quinaWinners,
-      quadraWinners,
-      senaPerWinner: senaWinners > 0 ? senaTotal / senaWinners : 0,
-      quinaPerWinner: quinaWinners > 0 ? quinaTotal / quinaWinners : 0,
-      quadraPerWinner: quadraWinners > 0 ? quadraTotal / quadraWinners : 0,
+      senaWinners: senaCount,
+      quinaWinners: quinaCount,
+      quadraWinners: quadraCount,
+      senaPerWinner,
+      quinaPerWinner,
+      quadraPerWinner,
+      totalPerSenaWinner,
+      totalPerQuinaWinner,
+      totalPerQuadraWinner,
     };
   };
 
@@ -521,57 +555,244 @@ export default function GameChecker({ selectedGames, bolao }: GameCheckerProps) 
                 </h3>
               </div>
               
+              {/* Card explicativo sobre acumulação de prêmios */}
+              {bolao?.prizeAmount && parseFloat(bolao.prizeAmount.replace(/[^\d,]/g, '').replace(',', '.')) > 0 && results.filter(r => r.matchCount >= 5).length > 0 && (
+                <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-400 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FiInfo className="text-blue-600" size={20} />
+                    <h4 className="text-sm font-bold text-blue-800">Como funciona a premiação acumulada:</h4>
+                  </div>
+                  <div className="space-y-1 text-sm text-blue-700">
+                    {results.filter(r => r.matchCount === 6).length > 0 && (
+                      <div className="flex items-center gap-2 bg-yellow-100 p-2 rounded">
+                        <FiStar className="text-yellow-600" size={16} />
+                        <span className="font-bold">SENA (6 acertos)</span>
+                        <FiArrowRight className="text-gray-400" size={14} />
+                        <span>Leva SENA + QUINA + QUADRA</span>
+                      </div>
+                    )}
+                    {results.filter(r => r.matchCount === 5).length > 0 && (
+                      <div className="flex items-center gap-2 bg-green-100 p-2 rounded">
+                        <FiTrendingUp className="text-green-600" size={16} />
+                        <span className="font-bold">QUINA (5 acertos)</span>
+                        <FiArrowRight className="text-gray-400" size={14} />
+                        <span>Leva QUINA + QUADRA</span>
+                      </div>
+                    )}
+                    {results.filter(r => r.matchCount === 4).length > 0 && (
+                      <div className="flex items-center gap-2 bg-blue-100 p-2 rounded">
+                        <FiCheckCircle className="text-blue-600" size={16} />
+                        <span className="font-bold">QUADRA (4 acertos)</span>
+                        <FiArrowRight className="text-gray-400" size={14} />
+                        <span>Leva apenas QUADRA</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               {/* Distribuição de prêmios */}
               {bolao?.prizeAmount && parseFloat(bolao.prizeAmount.replace(/[^\d,]/g, '').replace(',', '.')) > 0 && (
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Sena */}
                   {distribution.senaWinners > 0 && (
-                    <div className="bg-yellow-50 border-2 border-yellow-500 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <FiStar className="text-yellow-600" size={24} />
-                        <h4 className="text-lg font-bold text-yellow-800">SENA</h4>
+                    <div className="bg-yellow-50 border-2 border-yellow-500 rounded-lg p-4 relative">
+                      {/* Badge de acumulação */}
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+                        <FiZap size={12} />
+                        ACUMULA 3 PRÊMIOS
                       </div>
-                      <p className="text-sm text-yellow-700 mb-1">
-                        {distribution.senaWinners} ganhador{distribution.senaWinners > 1 ? 'es' : ''}
-                      </p>
-                      <p className="text-2xl font-bold text-yellow-900">
-                        {formatCurrency(distribution.senaPerWinner)}
-                      </p>
-                      <p className="text-xs text-yellow-600 mt-1">por ganhador</p>
+                      
+                      <div className="flex items-center gap-2 mb-2 mt-2">
+                        <FiStar className="text-yellow-600" size={24} />
+                        <h4 className="text-lg font-bold text-yellow-800">SENA (6 acertos)</h4>
+                      </div>
+                      
+                      {/* Mini badges mostrando quais prêmios acumula */}
+                      <div className="flex gap-1 mb-3">
+                        <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full font-bold">Sena</span>
+                        <FiPlus className="text-yellow-400" size={12} />
+                        <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full font-bold">Quina</span>
+                        <FiPlus className="text-yellow-400" size={12} />
+                        <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-bold">Quadra</span>
+                      </div>
+                      
+                      {/* Soma total dos prêmios */}
+                      <div className="mb-3 p-2 bg-yellow-200 border border-yellow-400 rounded-lg">
+                        <p className="text-xs text-yellow-800 font-semibold mb-1">SOMA DOS 3 PRÊMIOS:</p>
+                        <p className="text-xl font-bold text-yellow-900">
+                          {formatCurrency(distribution.sena + distribution.quina + distribution.quadra)}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="text-sm text-yellow-700">
+                          <p className="font-semibold">Prêmio da Sena (35%):</p>
+                          <p className="text-lg font-bold text-yellow-900">{formatCurrency(distribution.sena)}</p>
+                        </div>
+                        
+                        <div className="text-sm text-yellow-700">
+                          <p>Ganhadores externos da sena: <span className="font-bold">{parseInt(externalWinners.sena) || 0}</span></p>
+                          <p>Jogos do bolão com sena: <span className="font-bold">{results.filter(r => r.matchCount === 6).length}</span></p>
+                          <p className="font-semibold">Total de ganhadores da sena: <span className="font-bold">{distribution.senaWinners}</span></p>
+                        </div>
+                        
+                        <div className="pt-2 border-t border-yellow-300">
+                          <p className="text-xs text-yellow-700 mb-1">Valor da Sena por bilhete:</p>
+                          <p className="text-lg font-bold text-yellow-900">
+                            {formatCurrency(distribution.senaPerWinner)}
+                          </p>
+                        </div>
+                        
+                        <div className="pt-2 border-t-2 border-yellow-400 bg-gradient-to-br from-yellow-100 to-yellow-200 -mx-4 px-4 py-3">
+                          <div className="flex items-center gap-1 mb-1">
+                            <FiZap className="text-yellow-600" size={16} />
+                            <p className="text-sm font-bold text-yellow-800">TOTAL ACUMULADO por bilhete:</p>
+                          </div>
+                          <p className="text-xs text-yellow-600 mb-1">(Soma dos 3 prêmios)</p>
+                          <p className="text-3xl font-bold text-yellow-900">
+                            {formatCurrency(distribution.totalPerSenaWinner)}
+                          </p>
+                        </div>
+                        
+                        {results.filter(r => r.matchCount === 6).length > 0 && votes && votes.length > 0 && (
+                          <div className="pt-2 border-t border-yellow-300 bg-yellow-300 -mx-4 -mb-4 px-4 py-3 rounded-b-lg">
+                            <p className="text-xs text-yellow-800 mb-1">Participantes no bolão: <span className="font-bold">{votes.length}</span></p>
+                            <div className="flex items-center gap-1 mb-1">
+                              <FiDollarSign className="text-yellow-700" size={16} />
+                              <p className="text-sm font-bold text-yellow-800">VALOR POR PESSOA:</p>
+                            </div>
+                            <p className="text-2xl font-bold text-yellow-900">
+                              {formatCurrency(distribution.totalPerSenaWinner / votes.length)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Quina */}
                   {distribution.quinaWinners > 0 && (
-                    <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <FiTrendingUp className="text-green-600" size={24} />
-                        <h4 className="text-lg font-bold text-green-800">QUINA</h4>
+                    <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 relative">
+                      {/* Badge de acumulação */}
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+                        <FiZap size={12} />
+                        ACUMULA 2 PRÊMIOS
                       </div>
-                      <p className="text-sm text-green-700 mb-1">
-                        {distribution.quinaWinners} ganhador{distribution.quinaWinners > 1 ? 'es' : ''}
-                      </p>
-                      <p className="text-2xl font-bold text-green-900">
-                        {formatCurrency(distribution.quinaPerWinner)}
-                      </p>
-                      <p className="text-xs text-green-600 mt-1">por ganhador</p>
+                      
+                      <div className="flex items-center gap-2 mb-2 mt-2">
+                        <FiTrendingUp className="text-green-600" size={24} />
+                        <h4 className="text-lg font-bold text-green-800">QUINA (5 acertos)</h4>
+                      </div>
+                      
+                      {/* Mini badges mostrando quais prêmios acumula */}
+                      <div className="flex gap-1 mb-3">
+                        <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full font-bold">Quina</span>
+                        <FiPlus className="text-green-400" size={12} />
+                        <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-bold">Quadra</span>
+                      </div>
+                      
+                      {/* Soma total dos prêmios */}
+                      <div className="mb-3 p-2 bg-green-200 border border-green-400 rounded-lg">
+                        <p className="text-xs text-green-800 font-semibold mb-1">SOMA DOS 2 PRÊMIOS:</p>
+                        <p className="text-xl font-bold text-green-900">
+                          {formatCurrency(distribution.quina + distribution.quadra)}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="text-sm text-green-700">
+                          <p className="font-semibold">Prêmio da Quina (19%):</p>
+                          <p className="text-lg font-bold text-green-900">{formatCurrency(distribution.quina)}</p>
+                        </div>
+                        
+                        <div className="text-sm text-green-700">
+                          <p>Ganhadores externos da quina: <span className="font-bold">{parseInt(externalWinners.quina) || 0}</span></p>
+                          <p>Jogos do bolão com quina: <span className="font-bold">{results.filter(r => r.matchCount === 5).length}</span></p>
+                          <p className="text-xs text-green-600 italic mt-1">+ {distribution.senaWinners} da sena (acumulado)</p>
+                          <p className="font-semibold">Total dividindo quina: <span className="font-bold">{distribution.quinaWinners}</span></p>
+                        </div>
+                        
+                        <div className="pt-2 border-t border-green-300">
+                          <p className="text-xs text-green-700 mb-1">Valor da Quina por bilhete:</p>
+                          <p className="text-lg font-bold text-green-900">
+                            {formatCurrency(distribution.quinaPerWinner)}
+                          </p>
+                        </div>
+                        
+                        <div className="pt-2 border-t-2 border-green-400 bg-gradient-to-br from-green-100 to-green-200 -mx-4 px-4 py-3">
+                          <div className="flex items-center gap-1 mb-1">
+                            <FiZap className="text-green-600" size={16} />
+                            <p className="text-sm font-bold text-green-800">TOTAL ACUMULADO por bilhete:</p>
+                          </div>
+                          <p className="text-xs text-green-600 mb-1">(Soma dos 2 prêmios)</p>
+                          <p className="text-3xl font-bold text-green-900">
+                            {formatCurrency(distribution.totalPerQuinaWinner)}
+                          </p>
+                        </div>
+                        
+                        {results.filter(r => r.matchCount === 5).length > 0 && votes && votes.length > 0 && (
+                          <div className="pt-2 border-t border-green-300 bg-green-300 -mx-4 -mb-4 px-4 py-3 rounded-b-lg">
+                            <p className="text-xs text-green-800 mb-1">Participantes no bolão: <span className="font-bold">{votes.length}</span></p>
+                            <div className="flex items-center gap-1 mb-1">
+                              <FiDollarSign className="text-green-700" size={16} />
+                              <p className="text-sm font-bold text-green-800">VALOR POR PESSOA:</p>
+                            </div>
+                            <p className="text-2xl font-bold text-green-900">
+                              {formatCurrency(distribution.totalPerQuinaWinner / votes.length)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Quadra */}
                   {distribution.quadraWinners > 0 && (
-                    <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-4">
+                    <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 relative">
                       <div className="flex items-center gap-2 mb-2">
                         <FiCheckCircle className="text-blue-600" size={24} />
-                        <h4 className="text-lg font-bold text-blue-800">QUADRA</h4>
+                        <h4 className="text-lg font-bold text-blue-800">QUADRA (4 acertos)</h4>
                       </div>
-                      <p className="text-sm text-blue-700 mb-1">
-                        {distribution.quadraWinners} ganhador{distribution.quadraWinners > 1 ? 'es' : ''}
-                      </p>
-                      <p className="text-2xl font-bold text-blue-900">
-                        {formatCurrency(distribution.quadraPerWinner)}
-                      </p>
-                      <p className="text-xs text-blue-600 mt-1">por ganhador</p>
+                      
+                      {/* Badge simples */}
+                      <div className="flex gap-1 mb-3">
+                        <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-bold">Apenas Quadra</span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="text-sm text-blue-700">
+                          <p className="font-semibold">Prêmio da Quadra (19%):</p>
+                          <p className="text-lg font-bold text-blue-900">{formatCurrency(distribution.quadra)}</p>
+                        </div>
+                        
+                        <div className="text-sm text-blue-700">
+                          <p>Ganhadores externos da quadra: <span className="font-bold">{parseInt(externalWinners.quadra) || 0}</span></p>
+                          <p>Jogos do bolão com quadra: <span className="font-bold">{results.filter(r => r.matchCount === 4).length}</span></p>
+                          <p className="text-xs text-blue-600 italic mt-1">+ {distribution.quinaWinners} da quina+sena (acumulado)</p>
+                          <p className="font-semibold">Total dividindo quadra: <span className="font-bold">{distribution.quadraWinners}</span></p>
+                        </div>
+                        
+                        <div className="pt-2 border-t-2 border-blue-400 bg-gradient-to-br from-blue-100 to-blue-200 -mx-4 px-4 py-3">
+                          <p className="text-sm font-bold text-blue-800 mb-1">Valor por bilhete:</p>
+                          <p className="text-3xl font-bold text-blue-900">
+                            {formatCurrency(distribution.quadraPerWinner)}
+                          </p>
+                        </div>
+                        
+                        {results.filter(r => r.matchCount === 4).length > 0 && votes && votes.length > 0 && (
+                          <div className="pt-2 border-t border-blue-300 bg-blue-300 -mx-4 -mb-4 px-4 py-3 rounded-b-lg">
+                            <p className="text-xs text-blue-800 mb-1">Participantes no bolão: <span className="font-bold">{votes.length}</span></p>
+                            <div className="flex items-center gap-1 mb-1">
+                              <FiDollarSign className="text-blue-700" size={16} />
+                              <p className="text-sm font-bold text-blue-800">VALOR POR PESSOA:</p>
+                            </div>
+                            <p className="text-2xl font-bold text-blue-900">
+                              {formatCurrency(distribution.quadraPerWinner / votes.length)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

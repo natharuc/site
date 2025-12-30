@@ -325,7 +325,7 @@ export default function MegaDaVirada() {
 
             {/* Conferir Resultados */}
             {currentBolao?.selectedGames && currentBolao.selectedGames.length > 0 && (
-              <GameChecker selectedGames={currentBolao.selectedGames} bolao={currentBolao} />
+              <GameChecker selectedGames={currentBolao.selectedGames} bolao={currentBolao} votes={votes} />
             )}
           </div>
         ) : (
@@ -453,7 +453,7 @@ export default function MegaDaVirada() {
 
             {/* Conferir Resultados */}
             {currentBolao?.selectedGames && currentBolao.selectedGames.length > 0 && (
-              <GameChecker selectedGames={currentBolao.selectedGames} bolao={currentBolao} />
+              <GameChecker selectedGames={currentBolao.selectedGames} bolao={currentBolao} votes={votes} />
             )}
 
           </>
