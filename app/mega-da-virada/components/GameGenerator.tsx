@@ -397,7 +397,7 @@ export default function GameGenerator({ votes }: GameGeneratorProps) {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                      {game.map((num, i) => (
+                      {[...game].sort((a, b) => a - b).map((num, i) => (
                         <div
                           key={i}
                           className="relative group"
@@ -469,7 +469,7 @@ export default function GameGenerator({ votes }: GameGeneratorProps) {
                 </div>
                 
                 <div className="flex flex-wrap gap-3">
-                  {game.map((num) => {
+                  {[...game].sort((a, b) => a - b).map((num) => {
                     const numberData = getMostVotedNumbers.find(n => n.number === num);
                     const votes = numberData?.count || 0;
                     
