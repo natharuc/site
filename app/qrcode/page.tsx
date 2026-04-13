@@ -39,13 +39,28 @@ export default function QRCodeReader() {
     }
   };
 
+  const toGray = (r: number, g: number, b: number) =>
+    r * 0.299 + g * 0.587 + b * 0.114;
+
   const tryDecode = useCallback((canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, img: HTMLImageElement) => {
+    const binarize = (imageData: ImageData, threshold: number) => {
+      const d = imageData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const val = toGray(d[i], d[i + 1], d[i + 2]) < threshold ? 0 : 255;
+        d[i] = val;
+        d[i + 1] = val;
+        d[i + 2] = val;
+      }
+    };
+
+    const scan = (data: ImageData) => jsQR(data.data, data.width, data.height);
+
     // Strategy 1: Original image at full size
     canvas.width = img.width;
     canvas.height = img.height;
     ctx.drawImage(img, 0, 0);
     let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let code = jsQR(imageData.data, imageData.width, imageData.height);
+    let code = scan(imageData);
     if (code) return code.data;
 
     // Strategy 2: Grayscale + binarization with multiple thresholds
@@ -54,17 +69,8 @@ export default function QRCodeReader() {
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
       imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        const val = gray < threshold ? 0 : 255;
-        data[i] = val;
-        data[i + 1] = val;
-        data[i + 2] = val;
-      }
-      ctx.putImageData(imageData, 0, 0);
-      imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      code = jsQR(imageData.data, imageData.width, imageData.height);
+      binarize(imageData, threshold);
+      code = scan(imageData);
       if (code) return code.data;
     }
 
@@ -79,9 +85,7 @@ export default function QRCodeReader() {
       invData[i + 1] = 255 - invData[i + 1];
       invData[i + 2] = 255 - invData[i + 2];
     }
-    ctx.putImageData(imageData, 0, 0);
-    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    code = jsQR(imageData.data, imageData.width, imageData.height);
+    code = scan(imageData);
     if (code) return code.data;
 
     // Strategy 4: Scaled down versions (large images can cause issues)
@@ -92,30 +96,22 @@ export default function QRCodeReader() {
       canvas.height = h;
       ctx.drawImage(img, 0, 0, w, h);
       imageData = ctx.getImageData(0, 0, w, h);
-      code = jsQR(imageData.data, imageData.width, imageData.height);
+      code = scan(imageData);
       if (code) return code.data;
 
       // Also try binarized at this scale
-      const sData = imageData.data;
-      for (let i = 0; i < sData.length; i += 4) {
-        const gray = sData[i] * 0.299 + sData[i + 1] * 0.587 + sData[i + 2] * 0.114;
-        const val = gray < 128 ? 0 : 255;
-        sData[i] = val;
-        sData[i + 1] = val;
-        sData[i + 2] = val;
-      }
-      ctx.putImageData(imageData, 0, 0);
-      imageData = ctx.getImageData(0, 0, w, h);
-      code = jsQR(imageData.data, imageData.width, imageData.height);
+      binarize(imageData, 128);
+      code = scan(imageData);
       if (code) return code.data;
     }
 
-    // Strategy 5: Crop to square regions (QR code may be in a portion of the image)
+    // Strategy 5: Crop to regions (QR code may be in a portion of the image)
+    const side = Math.min(img.width, img.height);
     const cropRegions = [
-      { x: 0, y: 0, w: img.width, h: img.width },                                          // top square
-      { x: 0, y: 0, w: Math.round(img.width * 0.9), h: Math.round(img.width * 0.9) },      // top-left 90%
-      { x: 0, y: 0, w: img.width, h: Math.round(img.height * 0.6) },                        // top 60%
-      { x: 0, y: 0, w: img.width, h: Math.round(img.height * 0.75) },                       // top 75%
+      { x: 0, y: 0, w: side, h: side },                                                        // top square
+      { x: 0, y: 0, w: Math.round(side * 0.9), h: Math.round(side * 0.9) },                    // top-left 90%
+      { x: 0, y: 0, w: img.width, h: Math.round(img.height * 0.6) },                           // top 60%
+      { x: 0, y: 0, w: img.width, h: Math.round(img.height * 0.75) },                          // top 75%
       { x: Math.round(img.width * 0.05), y: Math.round(img.height * 0.05), w: Math.round(img.width * 0.9), h: Math.round(img.height * 0.5) }, // center crop
     ];
 
@@ -128,21 +124,12 @@ export default function QRCodeReader() {
       canvas.height = ch;
       ctx.drawImage(img, region.x, region.y, cw, ch, 0, 0, cw, ch);
       imageData = ctx.getImageData(0, 0, cw, ch);
-      code = jsQR(imageData.data, imageData.width, imageData.height);
+      code = scan(imageData);
       if (code) return code.data;
 
       // Also try binarized crop
-      const cData = imageData.data;
-      for (let i = 0; i < cData.length; i += 4) {
-        const gray = cData[i] * 0.299 + cData[i + 1] * 0.587 + cData[i + 2] * 0.114;
-        const val = gray < 128 ? 0 : 255;
-        cData[i] = val;
-        cData[i + 1] = val;
-        cData[i + 2] = val;
-      }
-      ctx.putImageData(imageData, 0, 0);
-      imageData = ctx.getImageData(0, 0, cw, ch);
-      code = jsQR(imageData.data, imageData.width, imageData.height);
+      binarize(imageData, 128);
+      code = scan(imageData);
       if (code) return code.data;
     }
 
@@ -153,7 +140,7 @@ export default function QRCodeReader() {
     ctx.drawImage(img, 0, 0);
     ctx.filter = 'none';
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    code = jsQR(imageData.data, imageData.width, imageData.height);
+    code = scan(imageData);
     if (code) return code.data;
 
     return null;
