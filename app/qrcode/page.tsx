@@ -14,6 +14,7 @@ export default function QRCodeReader() {
   const [copied, setCopied] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,6 +39,126 @@ export default function QRCodeReader() {
     }
   };
 
+  const tryDecode = useCallback((canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, img: HTMLImageElement) => {
+    // Strategy 1: Original image at full size
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let code = jsQR(imageData.data, imageData.width, imageData.height);
+    if (code) return code.data;
+
+    // Strategy 2: Grayscale + binarization with multiple thresholds
+    for (const threshold of [128, 100, 160, 80, 180]) {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        const val = gray < threshold ? 0 : 255;
+        data[i] = val;
+        data[i + 1] = val;
+        data[i + 2] = val;
+      }
+      ctx.putImageData(imageData, 0, 0);
+      imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code) return code.data;
+    }
+
+    // Strategy 3: Inverted colors
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const invData = imageData.data;
+    for (let i = 0; i < invData.length; i += 4) {
+      invData[i] = 255 - invData[i];
+      invData[i + 1] = 255 - invData[i + 1];
+      invData[i + 2] = 255 - invData[i + 2];
+    }
+    ctx.putImageData(imageData, 0, 0);
+    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    code = jsQR(imageData.data, imageData.width, imageData.height);
+    if (code) return code.data;
+
+    // Strategy 4: Scaled down versions (large images can cause issues)
+    for (const scale of [0.5, 0.75, 0.25]) {
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+      imageData = ctx.getImageData(0, 0, w, h);
+      code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code) return code.data;
+
+      // Also try binarized at this scale
+      const sData = imageData.data;
+      for (let i = 0; i < sData.length; i += 4) {
+        const gray = sData[i] * 0.299 + sData[i + 1] * 0.587 + sData[i + 2] * 0.114;
+        const val = gray < 128 ? 0 : 255;
+        sData[i] = val;
+        sData[i + 1] = val;
+        sData[i + 2] = val;
+      }
+      ctx.putImageData(imageData, 0, 0);
+      imageData = ctx.getImageData(0, 0, w, h);
+      code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code) return code.data;
+    }
+
+    // Strategy 5: Crop to square regions (QR code may be in a portion of the image)
+    const cropRegions = [
+      { x: 0, y: 0, w: img.width, h: img.width },                                          // top square
+      { x: 0, y: 0, w: Math.round(img.width * 0.9), h: Math.round(img.width * 0.9) },      // top-left 90%
+      { x: 0, y: 0, w: img.width, h: Math.round(img.height * 0.6) },                        // top 60%
+      { x: 0, y: 0, w: img.width, h: Math.round(img.height * 0.75) },                       // top 75%
+      { x: Math.round(img.width * 0.05), y: Math.round(img.height * 0.05), w: Math.round(img.width * 0.9), h: Math.round(img.height * 0.5) }, // center crop
+    ];
+
+    for (const region of cropRegions) {
+      const cw = Math.min(region.w, img.width - region.x);
+      const ch = Math.min(region.h, img.height - region.y);
+      if (cw <= 0 || ch <= 0) continue;
+
+      canvas.width = cw;
+      canvas.height = ch;
+      ctx.drawImage(img, region.x, region.y, cw, ch, 0, 0, cw, ch);
+      imageData = ctx.getImageData(0, 0, cw, ch);
+      code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code) return code.data;
+
+      // Also try binarized crop
+      const cData = imageData.data;
+      for (let i = 0; i < cData.length; i += 4) {
+        const gray = cData[i] * 0.299 + cData[i + 1] * 0.587 + cData[i + 2] * 0.114;
+        const val = gray < 128 ? 0 : 255;
+        cData[i] = val;
+        cData[i + 1] = val;
+        cData[i + 2] = val;
+      }
+      ctx.putImageData(imageData, 0, 0);
+      imageData = ctx.getImageData(0, 0, cw, ch);
+      code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code) return code.data;
+    }
+
+    // Strategy 6: High contrast enhancement
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.filter = 'contrast(2) grayscale(1)';
+    ctx.drawImage(img, 0, 0);
+    ctx.filter = 'none';
+    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    code = jsQR(imageData.data, imageData.width, imageData.height);
+    if (code) return code.data;
+
+    return null;
+  }, []);
+
   const processImage = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
       setError('Por favor, selecione um arquivo de imagem válido.');
@@ -49,6 +170,7 @@ export default function QRCodeReader() {
     setError(null);
     setQrContent(null);
     setCopied(false);
+    setIsProcessing(true);
 
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
@@ -58,34 +180,35 @@ export default function QRCodeReader() {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) return;
 
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      // Use setTimeout to let the UI update with the loading state before heavy processing
+      setTimeout(() => {
+        const result = tryDecode(canvas, ctx, img);
 
-      if (code) {
-        setQrContent(code.data);
-        setError(null);
-      } else {
-        setQrContent(null);
-        setError('Nenhum QR Code encontrado na imagem. Tente outra imagem.');
-      }
+        if (result) {
+          setQrContent(result);
+          setError(null);
+        } else {
+          setQrContent(null);
+          setError('Nenhum QR Code encontrado na imagem. Tente outra imagem.');
+        }
 
-      URL.revokeObjectURL(url);
+        setIsProcessing(false);
+        URL.revokeObjectURL(url);
+      }, 50);
     };
 
     img.onerror = () => {
       setError('Erro ao carregar a imagem. Tente novamente.');
       setPreviewUrl(null);
+      setIsProcessing(false);
       URL.revokeObjectURL(url);
     };
 
     img.src = url;
-  }, []);
+  }, [tryDecode]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -211,6 +334,19 @@ export default function QRCodeReader() {
                 alt="Imagem com QR Code"
                 className="max-w-full max-h-80 rounded-lg object-contain"
               />
+            </div>
+          </div>
+        )}
+
+        {/* Processing Indicator */}
+        {isProcessing && (
+          <div className={`${currentTheme.card} backdrop-blur-lg rounded-2xl p-6 border ${currentTheme.cardBorder} transition-all duration-300 mb-8 text-center`}>
+            <div className="flex items-center justify-center space-x-3">
+              <svg className="animate-spin h-6 w-6 text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p className={`${currentTheme.text} font-semibold transition-colors duration-1000`}>Analisando imagem...</p>
             </div>
           </div>
         )}
