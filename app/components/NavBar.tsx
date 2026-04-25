@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BsSunFill, BsMoonStarsFill } from 'react-icons/bs';
-import { HiHome, HiUser, HiCode, HiBriefcase, HiMail, HiSparkles } from 'react-icons/hi';
+import { HiHome, HiUser, HiCode, HiBriefcase, HiMail, HiSparkles, HiDocumentText } from 'react-icons/hi';
 
 interface NavBarProps {
   isDark: boolean;
@@ -38,6 +38,7 @@ export default function NavBar({ isDark, onThemeToggle }: NavBarProps) {
     { href: '/sobre', label: 'Sobre', icon: HiUser, color: 'from-blue-500 to-cyan-500' },
     { href: '/skills', label: 'Skills', icon: HiCode, color: 'from-purple-500 to-pink-500' },
     { href: '/experiencia', label: 'Experiência', icon: HiBriefcase, color: 'from-yellow-500 to-orange-500' },
+    { href: '/blog', label: 'Blog', icon: HiDocumentText, color: 'from-emerald-500 to-teal-500' },
     { href: '/contato', label: 'Contato', icon: HiMail, color: 'from-red-500 to-rose-500' },
   ];
 
@@ -49,6 +50,14 @@ export default function NavBar({ isDark, onThemeToggle }: NavBarProps) {
       document.body.style.overflow = 'unset';
     }
   }, [isMobileMenuOpen]);
+
+  const isActiveRoute = (href: string) => {
+    if (href === '/') {
+      return pathname === '/';
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <>
@@ -63,13 +72,13 @@ export default function NavBar({ isDark, onThemeToggle }: NavBarProps) {
               <span className={`${currentTheme.text} font-bold text-xl transition-colors duration-1000`}>Nathan Arruda</span>
             </Link>
             
-            <div className="flex items-center space-x-8">
+            <div className="flex items-center space-x-6">
               {menuItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={`text-sm font-medium transition-all duration-300 ${
-                    pathname === item.href
+                    isActiveRoute(item.href)
                       ? 'text-green-400 scale-110'
                       : `${currentTheme.textMuted} hover:text-green-400`
                   }`}
@@ -153,16 +162,18 @@ export default function NavBar({ isDark, onThemeToggle }: NavBarProps) {
           {/* Radial Menu Items */}
           <div className="absolute inset-0 flex items-center justify-center">
             {menuItems.map((item, index) => {
-              const angle = (index * 72 - 90) * (Math.PI / 180); // 360/5 = 72 degrees each
-              const radius = 120; // Distance from center
+              const angleStep = 360 / menuItems.length;
+              const angle = (index * angleStep - 90) * (Math.PI / 180);
+              const radius = menuItems.length > 5 ? 128 : 120;
               const x = Math.cos(angle) * radius;
               const y = Math.sin(angle) * radius;
-              const isActive = pathname === item.href;
+              const isActive = isActiveRoute(item.href);
 
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
                   onMouseEnter={() => setHoveredItem(item.label)}
                   onMouseLeave={() => setHoveredItem(null)}
                   className={`absolute transition-all duration-700 ease-out ${
