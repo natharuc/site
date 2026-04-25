@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaGithub, FaLinkedin, FaTwitter, FaInstagram, FaHandPeace } from 'react-icons/fa';
-import { HiSparkles, HiCode } from 'react-icons/hi';
+import { HiSparkles, HiCode, HiDocumentText, HiArrowRight } from 'react-icons/hi';
 import Terminal from './components/Terminal';
 import Footer from './components/Footer';
 import NavBar from './components/NavBar';
@@ -175,6 +175,82 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Blog Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-400/20 text-green-400 text-sm font-semibold mb-5">
+            <HiDocumentText />
+            Blog
+          </div>
+
+          <h2 className={`text-4xl md:text-5xl font-bold ${currentTheme.text} mb-4 transition-colors duration-1000`}>
+            Últimas <span className="bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">postagens</span>
+          </h2>
+
+          <p className={`${currentTheme.textMuted} text-lg max-w-2xl mx-auto transition-colors duration-1000`}>
+            Reflexões sobre tecnologia, carreira, arquitetura e os movimentos que estão mudando o mercado.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-[0.85fr_1.15fr] gap-6 items-stretch">
+          <div className={`${currentTheme.card} backdrop-blur-lg rounded-3xl p-8 border ${currentTheme.cardBorder} relative overflow-hidden`}>
+            <div className="absolute -top-24 -left-24 w-64 h-64 bg-green-500/20 rounded-full blur-3xl" />
+            <div className="relative h-full flex flex-col justify-between">
+              <div>
+                <p className="text-green-400 font-semibold mb-3">Destaque</p>
+                <h3 className={`${currentTheme.text} text-3xl font-bold mb-4 transition-colors duration-1000`}>
+                  IA e o futuro da TI
+                </h3>
+                <p className={`${currentTheme.textMuted} leading-relaxed transition-colors duration-1000`}>
+                  Uma previsão direta sobre como a inteligência artificial deve impactar devs, QAs,
+                  suporte, times de tecnologia e o perfil do profissional que continuará relevante.
+                </p>
+              </div>
+
+              <Link
+                href="/blog/ia-futuro-ti"
+                className="mt-8 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-green-500/40"
+              >
+                Ler postagem
+                <HiArrowRight />
+              </Link>
+            </div>
+          </div>
+
+          <Link
+            href="/blog/ia-futuro-ti"
+            className={`${currentTheme.card} backdrop-blur-lg rounded-3xl p-8 border ${currentTheme.cardBorder} hover:scale-[1.02] transition-all duration-300 group`}
+          >
+            <div className="flex flex-col md:flex-row md:items-center gap-6 h-full">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
+                <HiCode className="text-white" size={30} />
+              </div>
+
+              <div className="flex-1">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span className="px-3 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-400/20 text-sm font-semibold">
+                    Mercado
+                  </span>
+                  <span className={`px-3 py-1 rounded-full ${currentTheme.card} ${currentTheme.textMuted} border ${currentTheme.cardBorder} text-sm`}>
+                    24/04/2026
+                  </span>
+                </div>
+
+                <h3 className={`${currentTheme.text} text-2xl font-bold mb-3 group-hover:text-green-400 transition-colors duration-300`}>
+                  Menos executores, mais orquestradores
+                </h3>
+
+                <p className={`${currentTheme.textMuted} leading-relaxed transition-colors duration-1000`}>
+                  A IA não precisa substituir 100% um profissional. Ela só precisa permitir que uma pessoa boa faça o trabalho de várias.
+                </p>
+              </div>
+
+              <HiArrowRight className="text-green-400 group-hover:translate-x-1 transition-transform duration-300 hidden md:block" size={28} />
+            </div>
+          </Link>
+        </div>
+      </section>
 
       {/* Footer */}
       <Footer isDark={isDark} />
